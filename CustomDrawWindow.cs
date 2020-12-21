@@ -127,13 +127,11 @@
             return result;
         }
 
-        public Bitmap CreateNativeBitmap()
+        public void DrawNativeClient(Bitmap bmp)
         {
-            var cs = Owner.ClientSize;
-            var bmp = new Bitmap(cs.Width, cs.Height);
-            using (var g = Graphics.FromImage(bmp))
+            using (var graphics = Graphics.FromImage(bmp))
             {
-                var hdc = g.GetHdc();
+                var hdc = graphics.GetHdc();
                 try
                 {
                     Message m = Message.Create(Owner.Handle, WM_ERASEBKGND, hdc, IntPtr.Zero);
@@ -143,10 +141,9 @@
                 }
                 finally
                 {
-                    g.ReleaseHdc();
+                    graphics.ReleaseHdc();
                 }
             }
-            return bmp;
         }
 
         #region WINAPI
