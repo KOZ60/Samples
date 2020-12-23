@@ -28,25 +28,19 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.textBox1 = new System.Windows.Forms.TextBox();
             this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
             this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
             this.SuspendLayout();
-            // 
-            // textBox1
-            // 
-            this.textBox1.Location = new System.Drawing.Point(12, 25);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(152, 19);
-            this.textBox1.TabIndex = 0;
             // 
             // dateTimePickerEx1
             // 
             this.dateTimePickerEx1.BackColor = System.Drawing.Color.Green;
             this.dateTimePickerEx1.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.dateTimePickerEx1.ForeColor = System.Drawing.Color.Yellow;
-            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 72);
+            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 34);
             this.dateTimePickerEx1.Name = "dateTimePickerEx1";
+            this.dateTimePickerEx1.ShowCheckBox = true;
+            this.dateTimePickerEx1.ShowUpDown = true;
             this.dateTimePickerEx1.Size = new System.Drawing.Size(241, 31);
             this.dateTimePickerEx1.TabIndex = 1;
             // 
@@ -66,18 +60,13 @@
             this.ClientSize = new System.Drawing.Size(531, 303);
             this.Controls.Add(this.propertyGrid1);
             this.Controls.Add(this.dateTimePickerEx1);
-            this.Controls.Add(this.textBox1);
             this.Name = "Form1";
             this.Text = "Form1";
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.TextBox textBox1;
         private DateTimePickerEx dateTimePickerEx1;
         private System.Windows.Forms.PropertyGrid propertyGrid1;
     }

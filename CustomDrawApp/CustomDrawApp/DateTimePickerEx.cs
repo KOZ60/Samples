@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
-using System.ComponentModel;
-
-namespace CustomDrawApp
+﻿namespace CustomDrawApp
 {
-    class DateTimePickerEx : DateTimePicker
+    using System;
+    using System.ComponentModel;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Runtime.InteropServices;
+    using System.Windows.Forms;
+
+    public class DateTimePickerEx : DateTimePicker
     {
         readonly CustomDrawWindow cdw;
 
@@ -21,32 +17,42 @@ namespace CustomDrawApp
             cdw.CustomDraw += CustomDraw;
         }
 
-        [Browsable(true), EditorBrowsable(EditorBrowsableState.Always)]
+        [Browsable(true)]
+        [EditorBrowsable(EditorBrowsableState.Always)]
         public override Color ForeColor { get => base.ForeColor; set => base.ForeColor = value; }
 
-        [Browsable(true), EditorBrowsable(EditorBrowsableState.Always)]
+        [Browsable(true)]
+        [EditorBrowsable(EditorBrowsableState.Always)]
         public override Color BackColor { get => base.BackColor; set => base.BackColor = value; }
 
-        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never), Obsolete(), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete()]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new bool RightToLeftLayout { get ; set; }
 
         private void CustomDraw(object sender, PaintEventArgs e)
         {
+            // ネイティブイメージを描画
             var bmpOrg = cdw.NativeClientBitmap;
             var g = e.Graphics;
             g.DrawImage(bmpOrg, Point.Empty);
 
+            // 枠を除いて描画領域とする
             var bsz = SystemInformation.Border3DSize;
             var clip = Rectangle.Inflate(this.ClientRectangle, -bsz.Width, -bsz.Height);
 
             IntPtr hdc = g.GetHdc();
             try
             {
+                // BackColor を反映
                 using (var bmpBack = (Bitmap)bmpOrg.Clone())
                 {
                     BitBlt(bmpBack, BackColor, SRCAND);
                     BitBlt(hdc, bmpBack, clip, SRCCOPY);
                 }
+
+                // ForeColor を反映
                 using (var bmpFore = CreateNegativeBitmap(bmpOrg))
                 {
                     BitBlt(bmpFore, ForeColor, SRCAND);
@@ -62,10 +68,11 @@ namespace CustomDrawApp
                 // チェックボックスを描画
                 if (!checkBox.IsEmpty)
                 {
+                    // チェックボックスの領域をネイティブイメージより描画
                     BitBlt(hdc, bmpOrg, checkBox, SRCCOPY);
                 }
 
-                // アップダウンコントロールがある場合はその領域をボタンとする
+                // アップダウンコントロールがある場合はその領域をボタン領域とする
                 if (dti.hwndUD != IntPtr.Zero)
                 {
                     GetWindowRect(dti.hwndUD, out RECT rc);
@@ -75,12 +82,14 @@ namespace CustomDrawApp
                 // ボタンを描画
                 if (!button.IsEmpty)
                 {
+                    // ボタンの領域をネイティブイメージより描画
                     BitBlt(hdc, bmpOrg, button, SRCCOPY);
                 }
 
                 // フォーカスがあるとき、キャレットの部分のみ転送
                 if (this.ContainsFocus)
                 {
+                    // キャレットの色を検索する領域を設定
                     var left = clip.Left;
                     var right = clip.Right;
                     if (!checkBox.IsEmpty)
@@ -105,6 +114,7 @@ namespace CustomDrawApp
             }
         }
 
+        // ビットマップの色を反転
         private static Bitmap CreateNegativeBitmap(Bitmap bmp)
         {
             var bmpDest = new Bitmap(bmp.Width, bmp.Height);
@@ -117,6 +127,8 @@ namespace CustomDrawApp
             return bmpDest;
         }
 
+        // ネイティブイメージを検索してキャレットの位置を取得
+        // takiru氏に感謝！
         private unsafe static Rectangle GetCaretRectangle(Bitmap bmp, Rectangle canvas)
         {
             int pixelSize = Image.GetPixelFormatSize(bmp.PixelFormat) / 8;
@@ -127,9 +139,9 @@ namespace CustomDrawApp
                 var rangeStartX = -1;
                 var rangeEndX = -1;
                 var rangeStartY = canvas.Top + 2;   // Yの開始座標を、とりあえず4ピクセル目とする
-                var rangeEndY = bmpData.Height - 4; // Yの終了座標は、どの環境でも全体レイアウトの高さ-4
+                var rangeEndY = bmpData.Height - 4; // Yの終了座標は、全体レイアウトの高さ-4
 
-                byte* pixels = (byte*)bmpData.Scan0;
+                var pixels = (byte*)bmpData.Scan0;
                 var baseColor = SystemColors.Highlight;
                 var hlBytes = new byte[] { baseColor.B, baseColor.G, baseColor.R };
                 fixed (byte* highlightColor = &hlBytes[0])
@@ -183,6 +195,12 @@ namespace CustomDrawApp
 
         #region WINAPI
 
+        private class ExternDll
+        {
+            public const string Gdi32 = "gdi32.dll";
+            public const string User32 = "user32.dll";
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct RECT
         {
@@ -219,10 +237,10 @@ namespace CustomDrawApp
         private const int DTM_FIRST = 0x1000;
         private const int DTM_GETDATETIMEPICKERINFO = DTM_FIRST + 14;
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, DATETIMEPICKERINFO lParam);
 
-        [DllImport("user32.dll")]
+        [DllImport(ExternDll.User32)]
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         private const int SRCPAINT      = 0x00EE0086;
@@ -230,21 +248,21 @@ namespace CustomDrawApp
         private const int NOTSRCCOPY    = 0x330008;
         private const int SRCCOPY       = 0xCC0020;
 
-        [DllImport("gdi32.dll")]
+        [DllImport(ExternDll.Gdi32)]
         private static extern int BitBlt(IntPtr hdc, int x, int y, int cx, int cy, IntPtr hdcSrc, int x1, int y1, int rop);
 
-        [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+        [DllImport(ExternDll.Gdi32)]
         private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
 
-        [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+        [DllImport(ExternDll.Gdi32)]
         private static extern bool DeleteDC(IntPtr hdc);
 
-        [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+        [DllImport(ExternDll.Gdi32)]
         private static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
 
-        [DllImport("gdi32.dll", EntryPoint = "DeleteObject")]
+        [DllImport(ExternDll.Gdi32)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool DeleteObject([In] IntPtr hgdiobj);
+        private static extern bool DeleteObject(IntPtr hgdiobj);
 
         private static Bitmap CreateColorBitmap(Color color, Size size)
         {
@@ -297,6 +315,5 @@ namespace CustomDrawApp
         }
 
         #endregion
-
     }
 }
