@@ -2,12 +2,12 @@
 {
     using System;
     using System.Drawing;
-    using System.Windows.Forms;
     using System.Runtime.InteropServices;
+    using System.Windows.Forms;
 
     public class CustomDrawWindow : NativeWindow
     {
-        protected Control Owner { get; }
+        public Control Owner { get; }
 
         public event PaintEventHandler CustomDraw;
 
@@ -125,6 +125,25 @@
                 RealizePalette(dc);
             }
             return result;
+        }
+
+        private Bitmap bitmap;
+
+        public Bitmap NativeClientBitmap {
+            get {
+                var cs = Owner.ClientSize;
+                if (bitmap == null)
+                {
+                    bitmap = new Bitmap(cs.Width, cs.Height);
+                }
+                else if (bitmap.Width != cs.Width || bitmap.Height != cs.Height)
+                {
+                    bitmap.Dispose();
+                    bitmap = new Bitmap(cs.Width, cs.Height);
+                }
+                DrawNativeClient(bitmap);
+                return bitmap;
+            }
         }
 
         public void DrawNativeClient(Bitmap bmp)
