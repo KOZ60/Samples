@@ -29,29 +29,43 @@
         private void InitializeComponent()
         {
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
+            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
             this.SuspendLayout();
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(29, 25);
+            this.textBox1.Location = new System.Drawing.Point(12, 25);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(152, 19);
             this.textBox1.TabIndex = 0;
             // 
-            // textBox2
+            // dateTimePickerEx1
             // 
-            this.textBox2.Location = new System.Drawing.Point(29, 63);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(152, 19);
-            this.textBox2.TabIndex = 1;
+            this.dateTimePickerEx1.BackColor = System.Drawing.Color.Green;
+            this.dateTimePickerEx1.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.dateTimePickerEx1.ForeColor = System.Drawing.Color.Yellow;
+            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 72);
+            this.dateTimePickerEx1.Name = "dateTimePickerEx1";
+            this.dateTimePickerEx1.Size = new System.Drawing.Size(241, 31);
+            this.dateTimePickerEx1.TabIndex = 1;
+            // 
+            // propertyGrid1
+            // 
+            this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Right;
+            this.propertyGrid1.Location = new System.Drawing.Point(279, 0);
+            this.propertyGrid1.Name = "propertyGrid1";
+            this.propertyGrid1.SelectedObject = this.dateTimePickerEx1;
+            this.propertyGrid1.Size = new System.Drawing.Size(252, 303);
+            this.propertyGrid1.TabIndex = 2;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(226, 121);
-            this.Controls.Add(this.textBox2);
+            this.ClientSize = new System.Drawing.Size(531, 303);
+            this.Controls.Add(this.propertyGrid1);
+            this.Controls.Add(this.dateTimePickerEx1);
             this.Controls.Add(this.textBox1);
             this.Name = "Form1";
             this.Text = "Form1";
@@ -64,7 +78,8 @@
         #endregion
 
         private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.TextBox textBox2;
+        private DateTimePickerEx dateTimePickerEx1;
+        private System.Windows.Forms.PropertyGrid propertyGrid1;
     }
 }
 
