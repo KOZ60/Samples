@@ -9,7 +9,6 @@
     {
         public Control Owner { get; }
 
-        public event PaintEventHandler CustomDraw;
 
         public CustomDrawWindow(Control owner)
         {
@@ -21,23 +20,28 @@
             }
         }
 
+        private void Owner_HandleCreated(object sender, EventArgs e)
+        {
+            // Window が作成されたら AssignHandle
+            AssignHandle(((Control)sender).Handle);
+        }
+
+        /// <summary>
+        /// カスタムドロー用イベントです。カスタムドローを行うタイミングで呼び出されます。
+        /// </summary>
+        public event PaintEventHandler CustomDraw;
+
         protected virtual void OnCustomDraw(PaintEventArgs e)
         {
             if (CustomDraw != null) CustomDraw(this, e);
-        }
-
-        private void Owner_HandleCreated(object sender, EventArgs e)
-        {
-            AssignHandle(((Control)sender).Handle);
         }
 
         protected override void WndProc(ref Message m)
         {
             switch (m.Msg)
             {
-                case WM_DESTROY:
-                    base.WndProc(ref m);
-                    ReleaseHandle();
+                case WM_NCDESTROY:
+                    WmNcDestroy(ref m);
                     break;
 
                 case WM_PRINTCLIENT:
@@ -58,9 +62,30 @@
             }
         }
 
+        private void WmNcDestroy(ref Message m)
+        {
+            base.WndProc(ref m);
+
+            // WM_NCDESTROY が来たら ReleaseHandle
+            ReleaseHandle();
+
+            // bitmap 作成済みなら解放
+            if (bitmap != null)
+            {
+                bitmap.Dispose();
+                bitmap = null;
+            }
+        }
+
         private void WmPrintClient(ref Message m)
         {
-            using (var g = Graphics.FromHdc(m.WParam))
+            // WPARAM にセットされた HDC に描画を行う
+            OnCustomDraw(m.WParam);
+        }
+
+        private void OnCustomDraw(IntPtr hdc)
+        {
+            using (var g = Graphics.FromHdc(hdc))
             {
                 using (PaintEventArgs e = new PaintEventArgs(g, Owner.ClientRectangle))
                 {
@@ -73,6 +98,7 @@
         {
             if (m.WParam == IntPtr.Zero)
             {
+                // コントロールに描画する
                 var ps = new PAINTSTRUCT();
                 var hdc = BeginPaint(m.HWnd, ref ps);
                 if (hdc != IntPtr.Zero)
@@ -81,7 +107,9 @@
                     if (clip.Width > 0 && clip.Height > 0)
                     {
                         IntPtr oldPal = SetUpPalette(hdc, false, false);
-                        using (BufferedGraphics bufferedGraphics = BufferContext.Allocate(hdc, Owner.ClientRectangle))
+                        // ダブルバッファの処理
+                        var bufferContext = BufferedGraphicsManager.Current;
+                        using (BufferedGraphics bufferedGraphics = bufferContext.Allocate(hdc, Owner.ClientRectangle))
                         {
                             bufferedGraphics.Graphics.SetClip(clip);
                             using (var pevent = new PaintEventArgs(bufferedGraphics.Graphics, clip))
@@ -100,22 +128,12 @@
             }
             else
             {
-                using (var g = Graphics.FromHdc(m.WParam))
-                {
-                    using (var pevent = new PaintEventArgs(g, Owner.ClientRectangle))
-                    {
-                        OnCustomDraw(pevent);
-                    }
-                }
+                // WPARAM にセットされた HDC に描画を行う
+                OnCustomDraw(m.WParam);
             }
         }
 
-        private BufferedGraphicsContext BufferContext {
-            get {
-                return BufferedGraphicsManager.Current;
-            }
-        }
-
+        // 減色モードでの描画を高品質にする(らしい) .NET のソース参照。
         private static IntPtr SetUpPalette(IntPtr dc, bool force, bool realizePalette)
         {
             IntPtr halftonePalette = Graphics.GetHalftonePalette();
@@ -136,7 +154,7 @@
                 {
                     bitmap = new Bitmap(cs.Width, cs.Height);
                 }
-                else if (bitmap.Width != cs.Width || bitmap.Height != cs.Height)
+                else if (!bitmap.Size.Equals(cs))
                 {
                     bitmap.Dispose();
                     bitmap = new Bitmap(cs.Width, cs.Height);
@@ -173,7 +191,6 @@
             public const string User32 = "user32.dll";
         }
 
-        private const int WM_DESTROY = 0x0002;
         private const int WM_NCDESTROY = 0x0082;
         private const int WM_ERASEBKGND = 0x0014;
         private const int WM_PAINT = 0x000F;

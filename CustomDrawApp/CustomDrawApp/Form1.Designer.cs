@@ -36,8 +36,8 @@
             // 
             this.dateTimePickerEx1.BackColor = System.Drawing.Color.Green;
             this.dateTimePickerEx1.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.dateTimePickerEx1.ForeColor = System.Drawing.Color.Yellow;
-            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 34);
+            this.dateTimePickerEx1.ForeColor = System.Drawing.SystemColors.Window;
+            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 45);
             this.dateTimePickerEx1.Name = "dateTimePickerEx1";
             this.dateTimePickerEx1.ShowCheckBox = true;
             this.dateTimePickerEx1.ShowUpDown = true;

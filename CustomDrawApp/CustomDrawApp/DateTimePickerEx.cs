@@ -17,14 +17,79 @@
             cdw.CustomDraw += CustomDraw;
         }
 
-        [Browsable(true)]
-        [EditorBrowsable(EditorBrowsableState.Always)]
-        public override Color ForeColor { get => base.ForeColor; set => base.ForeColor = value; }
+        private Color _ForeColor = Color.Empty;
 
         [Browsable(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        public override Color BackColor { get => base.BackColor; set => base.BackColor = value; }
+        public override Color ForeColor {
+            get {
+                if (_ForeColor.IsEmpty)
+                {
+                    return SystemColors.WindowText;
+                }
+                return _ForeColor;
+            }
+            set {
+                if (_ForeColor != value)
+                {
+                    _ForeColor = value;
+                    if (IsHandleCreated)
+                    {
+                        Invalidate();
+                    }
+                    OnForeColorChanged(EventArgs.Empty);
+                }
+            }
+        }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected virtual bool ShouldSerializeForeColor()
+        {
+            return !_ForeColor.IsEmpty;
+        }
+
+        public override void ResetForeColor()
+        {
+            _ForeColor = Color.Empty;
+        }
+
+        private Color _BackColor = Color.Empty;
+
+        [Browsable(true)]
+        [EditorBrowsable(EditorBrowsableState.Always)]
+        public override Color BackColor {
+            get {
+                if (_BackColor.IsEmpty)
+                {
+                    return SystemColors.Window;
+                }
+                return _BackColor;
+            }
+            set {
+                if (_BackColor != value)
+                {
+                    _BackColor = value;
+                    if (IsHandleCreated)
+                    {
+                        Invalidate();
+                    }
+                    OnBackColorChanged(EventArgs.Empty);
+                }
+            }
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected virtual bool ShouldSerializeBackColor()
+        {
+            return !_BackColor.IsEmpty;
+        }
+
+        public override void ResetBackColor()
+        {
+            _BackColor = Color.Empty;
+        }
+
+        // ややこしくなるのでプロパティを隠すｗ
         [Browsable(false)]
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete()]
@@ -127,7 +192,7 @@
             return bmpDest;
         }
 
-        // ネイティブイメージを検索してキャレットの位置を取得
+        // ネイティブイメージの色を検索してキャレットの位置を取得
         // takiru氏に感謝！
         private unsafe static Rectangle GetCaretRectangle(Bitmap bmp, Rectangle canvas)
         {
@@ -136,14 +201,14 @@
                 ImageLockMode.ReadOnly, bmp.PixelFormat);
             try
             {
-                var rangeStartX = -1;
-                var rangeEndX = -1;
-                var rangeStartY = canvas.Top + 2;   // Yの開始座標を、とりあえず4ピクセル目とする
-                var rangeEndY = bmpData.Height - 4; // Yの終了座標は、全体レイアウトの高さ-4
+                int rangeStartX = -1;
+                int rangeEndX = -1;
+                int rangeStartY = canvas.Top + 2;   // Yの開始座標を、とりあえず4ピクセル目とする
+                int rangeEndY = bmpData.Height - 4; // Yの終了座標は、全体レイアウトの高さ-4
 
-                var pixels = (byte*)bmpData.Scan0;
-                var baseColor = SystemColors.Highlight;
-                var hlBytes = new byte[] { baseColor.B, baseColor.G, baseColor.R };
+                byte* pixels = (byte*)bmpData.Scan0;
+                Color baseColor = SystemColors.Highlight;
+                byte[] hlBytes = new byte[] { baseColor.B, baseColor.G, baseColor.R };
                 fixed (byte* highlightColor = &hlBytes[0])
                 {
                     // X方向へ選択領域座標を取得
@@ -244,9 +309,9 @@
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         private const int SRCPAINT      = 0x00EE0086;
-        private const int SRCAND        = 0x8800C6;
-        private const int NOTSRCCOPY    = 0x330008;
-        private const int SRCCOPY       = 0xCC0020;
+        private const int SRCAND        = 0x008800C6;
+        private const int NOTSRCCOPY    = 0x00330008;
+        private const int SRCCOPY       = 0x00CC0020;
 
         [DllImport(ExternDll.Gdi32)]
         private static extern int BitBlt(IntPtr hdc, int x, int y, int cx, int cy, IntPtr hdcSrc, int x1, int y1, int rop);
