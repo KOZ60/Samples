@@ -56,32 +56,52 @@ namespace GetListViewItem
 
         public void WriteTo(IntPtr sourceAddress, int cbSize)
         {
+            WriteTo(sourceAddress, 0, cbSize);
+        }
+
+        public void WriteTo(IntPtr sourceAddress, int offset, int cbSize)
+        {
             IntPtr count;
-            WriteProcessMemory(_processHandle, handle, sourceAddress, new IntPtr(cbSize), out count);
+            WriteProcessMemory(_processHandle, handle + offset, sourceAddress, new IntPtr(cbSize), out count);
         }
 
         public void ReadFrom(IntPtr destAddress, int cbSize)
         {
+            ReadFrom(destAddress, 0, cbSize);
+        }
+
+        public void ReadFrom(IntPtr destAddress, int offset, int cbSize)
+        {
             IntPtr count;
-            ReadProcessMemory(_processHandle, handle, destAddress, new IntPtr(cbSize), out count);
+            ReadProcessMemory(_processHandle, handle + offset, destAddress, new IntPtr(cbSize), out count);
         }
 
         public void WriteTo<T>(ref T structure) where T : struct
+        {
+            WriteTo(ref structure, 0);
+        }
+
+        public void WriteTo<T>(ref T structure, int offset) where T : struct
         {
             int cbSize = Marshal.SizeOf(structure);
             using (var m = new CoTaskMem(cbSize))
             {
                 Marshal.StructureToPtr(structure, m.Address, false);
-                WriteTo(m.Address, cbSize);
+                WriteTo(m.Address, offset, cbSize);
             }
         }
 
         public T ReadFrom<T>() where T : struct
         {
+            return ReadFrom<T>(0);
+        }
+
+        public T ReadFrom<T>(int offset) where T : struct
+        {
             int cbSize = Marshal.SizeOf(typeof(T));
             using (var m = new CoTaskMem(cbSize))
             {
-                ReadFrom(m.Address, cbSize);
+                ReadFrom(m.Address, offset, cbSize);
                 return (T)Marshal.PtrToStructure(m.Address, typeof(T));
             }
         }

@@ -10,7 +10,7 @@ namespace GetListViewItem
         static void Main(string[] args)
         {
             //IntPtr hwnd = new IntPtr(2101292);
-            IntPtr hwnd = new IntPtr(70368);
+            IntPtr hwnd = new IntPtr(7803356);
 
             Debug.Print(GetItemText(hwnd, 0, 0));
             Debug.Print(GetItemText(hwnd, 0, 1));
@@ -76,48 +76,47 @@ namespace GetListViewItem
 
         public static string GetItemText(IntPtr hwnd, int item, int subItem)
         {
-            int cbSize = (MAX_LVMSTRING + 1) * 2;
 
             using (var hProcess = new RemoteProcessHandle(hwnd))
             {
-                int lvItemSize = hProcess.Is32Bit ? Marshal.SizeOf(typeof(LVITEM32)) : Marshal.SizeOf(typeof(LVITEM64));
+                int offset = hProcess.Is32Bit ? Marshal.SizeOf(typeof(LVITEM32)) : Marshal.SizeOf(typeof(LVITEM64));
+                int cbSize = (MAX_LVMSTRING + 1) * 2;
 
-                using (var lvitemRM = new RemoteMemoryHandle(hProcess, lvItemSize))
-                using (var textRM = new RemoteMemoryHandle(hProcess, cbSize))
+                using (var remoteMem = new RemoteMemoryHandle(hProcess, offset + cbSize))
                 {
                     if (hProcess.Is32Bit)
                     {
                         var lvitem = new LVITEM32();
                         lvitem.mask = LVIF_TEXT;
-                        lvitem.pszText = (uint)textRM.Address;
+                        lvitem.pszText = (uint)(remoteMem.Address + offset);
                         lvitem.cchTextMax = MAX_LVMSTRING;
                         lvitem.iItem = item;
                         lvitem.iSubItem = subItem;
 
-                        lvitemRM.WriteTo(ref lvitem);
+                        remoteMem.WriteTo(ref lvitem);
                     }
                     else
                     {
                         var lvitem = new LVITEM64();
                         lvitem.mask = LVIF_TEXT;
-                        lvitem.pszText = (ulong)textRM.Address;
+                        lvitem.pszText = (ulong)(remoteMem.Address + offset);
                         lvitem.cchTextMax = MAX_LVMSTRING;
                         lvitem.iItem = item;
                         lvitem.iSubItem = subItem;
 
-                        lvitemRM.WriteTo(ref lvitem);
+                        remoteMem.WriteTo(ref lvitem);
                     }
 
                     bool isUnicode = IsWindowUnicode(hwnd);
                     int LVM_GETITEMTEXT = isUnicode ? LVM_GETITEMTEXTW : LVM_GETITEMTEXTA;
-                    var result = SendMessage(hwnd, LVM_GETITEMTEXT, new IntPtr(item), lvitemRM.Address);
+                    IntPtr result = SendMessage(hwnd, LVM_GETITEMTEXT, new IntPtr(item), remoteMem.Address);
                     if (result == IntPtr.Zero)
                     {
                         throw new Win32Exception();
                     }
                     using (var m = new CoTaskMem(cbSize))
                     {
-                        textRM.ReadFrom(m.Address, cbSize);
+                        remoteMem.ReadFrom(m.Address, offset, cbSize);
                         if (isUnicode)
                         {
                             return Marshal.PtrToStringUni(m.Address);
