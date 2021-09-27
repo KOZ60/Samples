@@ -8,20 +8,20 @@
 
     public class RestrictText : TextBox
     {
-        const int WM_CUT = 0x0300;
-        const int WM_COPY = 0x0301;
-        const int WM_PASTE = 0x0302;
-        const int WM_CLEAR = 0x0303;
+        private const int WM_CUT = 0x0300;
+        private const int WM_COPY = 0x0301;
+        private const int WM_PASTE = 0x0302;
+        private const int WM_CLEAR = 0x0303;
 
-        const char BACKSPACE = '\b';    // Backspace キー
-        const char CTRL_A = '\x01';     // CTRL+A（全選択）
-        const char CTRL_C = '\x03';     // CTRL+C（コピー）
-        const char CTRL_V = '\x16';     // CTRL+V（貼り付け）
-        const char CTRL_X = '\x18';     // CTRL+X（切り取り）
-        const char CTRL_Z = '\x1A';     // CTRL+Z（元に戻す）
+        private const char BACKSPACE = '\b';    // Backspace キー
+        private const char CTRL_A = '\x01';     // CTRL+A（全選択）
+        private const char CTRL_C = '\x03';     // CTRL+C（コピー）
+        private const char CTRL_V = '\x16';     // CTRL+V（貼り付け）
+        private const char CTRL_X = '\x18';     // CTRL+X（切り取り）
+        private const char CTRL_Z = '\x1A';     // CTRL+Z（元に戻す）
 
-        StringBuilder pasteText = new StringBuilder();
-        StringBuilder checkText = new StringBuilder();
+        private StringBuilder pasteText = new StringBuilder();
+        private StringBuilder checkText = new StringBuilder();
 
         protected override void OnKeyDown(KeyEventArgs e)
         {

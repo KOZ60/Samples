@@ -17,14 +17,19 @@ namespace CustomTextBox
             InitializeComponent();
         }
 
+        private void numberText1_TextChanged(object sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.Print("{0} numberText1_TextChanged", DateTime.Now);
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             MessageBox.Show(numberText1.Value.ToString());
         }
 
-        private void numberText1_TextChanged(object sender, EventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.Print("{0} numberText1_TextChanged", DateTime.Now);
+            numberText1.Value = 123456789;
         }
     }
 }

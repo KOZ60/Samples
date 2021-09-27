@@ -131,6 +131,11 @@
 
         protected virtual string GetFormatText()
         {
+            return GetFormatText(this.Value);
+        }
+
+        protected virtual string GetFormatText(decimal value)
+        {
             string format;
             string formatedText;
             if (string.IsNullOrEmpty(FormatString))
@@ -143,7 +148,7 @@
             }
             try
             {
-                formatedText = string.Format(format, this.Value);
+                formatedText = string.Format(format, value);
             }
             catch
             {
@@ -168,30 +173,30 @@
                 return result;
             }
             set {
-                base.Text = value.ToString();
+                base.Text = GetFormatText(value);
             }
         }
-
-        private bool _CanRaiseEvents = true;
 
         protected override bool CanRaiseEvents {
             get {
-                return _CanRaiseEvents;
+                return CanRaiseEventsInternal;
             }
         }
+
+        private bool CanRaiseEventsInternal { get; set; } = true;
 
         protected void SetTextWithoutEvents(string text)
         {
             if (base.Text != text)
             {
-                _CanRaiseEvents = false;
+                CanRaiseEventsInternal = false;
                 try
                 {
                     base.Text = text;
                 }
                 finally
                 {
-                    _CanRaiseEvents = true;
+                    CanRaiseEventsInternal = true;
                 }
             }
         }
