@@ -96,6 +96,12 @@
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new bool RightToLeftLayout { get ; set; }
 
+        private bool IsDisable {
+            get {
+                return !Enabled || (ShowCheckBox && (!Checked));
+            }
+        }
+
         private void CustomDraw(object sender, PaintEventArgs e)
         {
             // ネイティブイメージを描画
@@ -120,7 +126,8 @@
                 // ForeColor を反映
                 using (var bmpFore = CreateNegativeBitmap(bmpOrg))
                 {
-                    BitBlt(bmpFore, ForeColor, SRCAND);
+                    Color foreColor = IsDisable ? Color.Gray : ForeColor;
+                    BitBlt(bmpFore, foreColor, SRCAND);
                     BitBlt(hdc, bmpFore, clip, SRCPAINT);
                 }
 
@@ -196,11 +203,11 @@
         // takiru氏に感謝！
         private unsafe static Rectangle GetCaretRectangle(Bitmap bmp, Rectangle canvas)
         {
-            int pixelSize = Image.GetPixelFormatSize(bmp.PixelFormat) / 8;
-            BitmapData bmpData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height),
-                ImageLockMode.ReadOnly, bmp.PixelFormat);
+            Rectangle bmpRect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            BitmapData bmpData = bmp.LockBits(bmpRect, ImageLockMode.ReadOnly, bmp.PixelFormat);
             try
             {
+                int pixelSize = Image.GetPixelFormatSize(bmp.PixelFormat) / 8;
                 int rangeStartX = -1;
                 int rangeEndX = -1;
                 int rangeStartY = canvas.Top + 2;   // Yの開始座標を、とりあえず4ピクセル目とする

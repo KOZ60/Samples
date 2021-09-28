@@ -30,6 +30,7 @@
         {
             this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
             this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
+            this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.SuspendLayout();
             // 
             // dateTimePickerEx1
@@ -53,11 +54,22 @@
             this.propertyGrid1.Size = new System.Drawing.Size(252, 303);
             this.propertyGrid1.TabIndex = 2;
             // 
+            // dateTimePicker1
+            // 
+            this.dateTimePicker1.Font = new System.Drawing.Font("MS UI Gothic", 18F);
+            this.dateTimePicker1.Location = new System.Drawing.Point(13, 105);
+            this.dateTimePicker1.Name = "dateTimePicker1";
+            this.dateTimePicker1.ShowCheckBox = true;
+            this.dateTimePicker1.ShowUpDown = true;
+            this.dateTimePicker1.Size = new System.Drawing.Size(239, 31);
+            this.dateTimePicker1.TabIndex = 3;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(531, 303);
+            this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.propertyGrid1);
             this.Controls.Add(this.dateTimePickerEx1);
             this.Name = "Form1";
@@ -69,6 +81,7 @@
         #endregion
         private DateTimePickerEx dateTimePickerEx1;
         private System.Windows.Forms.PropertyGrid propertyGrid1;
+        private System.Windows.Forms.DateTimePicker dateTimePicker1;
     }
 }
 
