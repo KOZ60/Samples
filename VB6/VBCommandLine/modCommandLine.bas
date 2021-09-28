@@ -18,16 +18,17 @@ Public Function DivCommand(ByVal iCommand As String) As String()
     Dim nRet        As Long
     Dim sArgs()     As String
 
-    lpszArgs = CommandLineToArgvW(StrPtr(iCommand), nArgs)
-    If lpszArgs <> 0 Then
-        ReDim sArgs(nArgs - 1)
-        For i = 0 To nArgs - 1
-            sArgs(i) = ToStringW(GetPointer(lpszArgs, i))
-        Next
-        nRet = LocalFree(lpszArgs)
-    Else
-        'SafeArrayAllocDescriptor 1, sArgs
-        sArgs = Split(vbNullString)
+    sArgs = Split(vbNullString)
+    iCommand = Trim(iCommand)
+    If Len(iCommand) > 0 Then
+        lpszArgs = CommandLineToArgvW(StrPtr(iCommand), nArgs)
+        If lpszArgs <> 0 Then
+            ReDim sArgs(nArgs - 1)
+            For i = 0 To nArgs - 1
+                sArgs(i) = ToStringW(GetPointer(lpszArgs, i))
+            Next
+            nRet = LocalFree(lpszArgs)
+        End If
     End If
     DivCommand = sArgs
 End Function
