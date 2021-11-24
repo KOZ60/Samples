@@ -47,6 +47,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomCaret.cs" />
+    <Compile Include="TextBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CustomDrawWindow.cs" />
     <Compile Include="DateTimePickerEx.cs">
       <SubType>Component</SubType>
