@@ -11,9 +11,9 @@ namespace CustomDrawApp
         private readonly IntPtr BLACK_HANDLE = IntPtr.Zero;
         private readonly IntPtr GRAY_HANDLE = new IntPtr(1);
 
-        public CustomCaret(Color color, int width, int fontHeight) : base(true) {
+        public CustomCaret(Color color, Size size) : base(true) {
             Color = color;
-            Size = new Size(width, fontHeight);
+            Size = size;
 
             if (color == Color.Black) {
                 SetHandle(BLACK_HANDLE);
@@ -78,26 +78,5 @@ namespace CustomDrawApp
             }
             return true;
         }
-
-        //public static bool operator ==(CustomCaret left, CustomCaret right) {
-        //    return (left.Color == right.Color) &&
-        //           (left.Size == right.Size);
-        //}
-
-        //public static bool operator !=(CustomCaret left, CustomCaret right) {
-        //    return !(left == right);
-        //}
-
-        //public override bool Equals(object obj) {
-        //    CustomCaret other = obj as CustomCaret;
-        //    if (other != null) {
-        //        return this == other;
-        //    }
-        //    return false;
-        //}
-
-        //public override int GetHashCode() {
-        //    return Color.GetHashCode() << 8 | Size.GetHashCode();
-        //}
     }
 }

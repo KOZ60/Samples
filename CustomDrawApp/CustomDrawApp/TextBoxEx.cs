@@ -1,16 +1,14 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Drawing;
+using System.Windows.Forms;
 
 namespace CustomDrawApp
 {
-    class TextBoxEx : TextBox
-    {
+    public class TextBoxEx : TextBox {
+
+        const string CaretCategory = "キャレットの形状";
+
         readonly CustomDrawWindow cdw;
 
         public TextBoxEx() {
@@ -22,77 +20,140 @@ namespace CustomDrawApp
             e.Graphics.DrawImage(cdw.NativeClientBitmap, 0, 0);
         }
 
-        Color _CaretColor = Color.Empty;
+        #region CaretColor プロパティ
 
+        // -------------------------------------------------------------------------------
+        // CaretColor プロパティ
+        // -------------------------------------------------------------------------------
+        private Color _CaretColor = Color.Empty;
+
+        /// <summary>
+        /// キャレットの色を取得または設定します。
+        /// </summary>
+        [Category(CaretCategory)]
+        [Description("キャレットの色を取得または設定します。")]
         public Color CaretColor {
             get {
-                if (_CaretColor.IsEmpty) {
+                if (!ShouldSerializeCaretColor()) {
                     return Color.Black;
                 }
                 return _CaretColor;
             }
             set {
-                _CaretColor = value;
-                ShowCaretIfChanged();
+                if (CaretColor != value) {
+                    _CaretColor = value;
+                    SetupCaret();
+                    OnCaretColorChanged(EventArgs.Empty);
+                }
             }
         }
 
-        public void ResetCaretColor() {
-            _CaretColor = Color.Empty;
+        /// <summary>
+        /// CaretColorChanged イベントを発生させます。
+        /// </summary>
+        protected virtual void OnCaretColorChanged(EventArgs e) {
+            if (CaretColorChanged != null) CaretColorChanged(this, e);
         }
 
+        /// <summary>
+        /// CaretColor プロパティの値が変更された場合に発生します。
+        /// </summary>
+        public event EventHandler CaretColorChanged;
+
+        /// <summary>
+        /// CaretColor の値を既定値に設定します。
+        /// </summary>
+        internal void ResetCaretColor() {
+            CaretColor = Color.Empty;
+        }
+
+        /// <summary>
+        /// CaretColor の値が変更されているかを取得します。
+        /// </summary>
         internal bool ShouldSerializeCaretColor() {
-            return !_CaretColor.IsEmpty;
+            return _CaretColor != Color.Empty;
         }
 
-        public override Font Font {
-            get { return base.Font; }
-            set {
-                base.Font = value;
-                ShowCaretIfChanged();
-            }
-        }
+        #endregion
 
-        int _CaretWidth = 1;
+        #region CaretWidth プロパティ
 
-        [DefaultValue(1)]
+        // -------------------------------------------------------------------------------
+        // CaretWidth プロパティ
+        // -------------------------------------------------------------------------------
+        private const int DefaultCaretWidth = 1;
+        private int _CaretWidth = DefaultCaretWidth;
+
+        /// <summary>
+        /// キャレットの幅を取得または設定します。
+        /// </summary>
+        [Category(CaretCategory)]
+        [Description("キャレットの幅を取得または設定します。")]
+        [DefaultValue(DefaultCaretWidth)]
         public int CaretWidth {
             get {
                 return _CaretWidth;
             }
             set {
-                if (_CaretWidth != value) {
+                if (CaretWidth != value) {
                     _CaretWidth = value;
-                    ShowCaretIfChanged();
+                    SetupCaret();
+                    OnCaretWidthChanged(EventArgs.Empty);
                 }
             }
         }
 
-        CustomCaret customCaret;
-        private Size CaretSize {
+        /// <summary>
+        /// CaretWidthChanged イベントを発生させます。
+        /// </summary>
+        protected virtual void OnCaretWidthChanged(EventArgs e) {
+            if (CaretWidthChanged != null) CaretWidthChanged(this, e);
+        }
+
+        /// <summary>
+        /// CaretWidth プロパティの値が変更された場合に発生します。
+        /// </summary>
+        public event EventHandler CaretWidthChanged;
+
+        #endregion
+
+        protected override void OnFontChanged(EventArgs e) {
+            base.OnFontChanged(e);
+            SetupCaret();
+        }
+
+        CustomCaret _CustomCaret;
+
+        private CustomCaret CustomCaret {
             get {
-                return new Size(CaretWidth, Font.Height);
+                Size caretSize = new Size(CaretWidth, Font.Height);
+                if (_CustomCaret == null) {
+                    _CustomCaret = new CustomCaret(CaretColor, caretSize);
+                } else if (_CustomCaret.Color != CaretColor || _CustomCaret.Size != caretSize) {
+                    _CustomCaret.Dispose();
+                    _CustomCaret = new CustomCaret(CaretColor, caretSize);
+                }
+                return _CustomCaret;
             }
         }
 
-        private void ShowCaretIfChanged() {
-            bool changed = false;
-            if (customCaret == null) {
-                customCaret = new CustomCaret(CaretColor, CaretWidth, Font.Height);
-                changed = true;
-            } else if (customCaret.Color != CaretColor || customCaret.Size != CaretSize) {
-                customCaret.Dispose();
-                customCaret = new CustomCaret(CaretColor, CaretWidth, Font.Height);
-                changed = true;
-            }
-            if (Focused && changed) {
-                customCaret.Show(this);
+        private void SetupCaret() {
+            if (IsHandleCreated && Focused) {
+                CustomCaret.Show(this);
             }
         }
 
         protected override void OnGotFocus(EventArgs e) {
             base.OnGotFocus(e);
-            customCaret.Show(this);
+            CustomCaret.Show(this);
+        }
+
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+            if (_CustomCaret != null) {
+                _CustomCaret.Dispose();
+                _CustomCaret = null;
+            }
         }
     }
 }
