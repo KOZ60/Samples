@@ -9,7 +9,6 @@ namespace CustomDrawApp
     internal class CustomCaret : SafeHandleMinusOneIsInvalid
     {
         private readonly IntPtr BLACK_HANDLE = IntPtr.Zero;
-        private readonly IntPtr GRAY_HANDLE = new IntPtr(1);
 
         public CustomCaret(Color color, Size size) : base(true) {
             Color = color;
@@ -17,8 +16,6 @@ namespace CustomDrawApp
 
             if (color == Color.Black) {
                 SetHandle(BLACK_HANDLE);
-            } else if (color == Color.Gray) {
-                SetHandle(GRAY_HANDLE);
             } else {
                 using (var bmp = new Bitmap(Width, Height)) {
                     using (var g = Graphics.FromImage(bmp)) {
@@ -73,10 +70,12 @@ namespace CustomDrawApp
         }
 
         protected override bool ReleaseHandle() {
-            if (handle != BLACK_HANDLE && handle != GRAY_HANDLE) {
-                return DeleteObject(handle);
+            bool ret = true;
+            if (handle != BLACK_HANDLE) {
+                ret = DeleteObject(handle);
             }
-            return true;
+            SetHandle(new IntPtr(-1));
+            return ret;
         }
     }
 }

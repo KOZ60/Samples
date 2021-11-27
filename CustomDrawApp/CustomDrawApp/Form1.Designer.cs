@@ -28,10 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.propertyGrid2 = new System.Windows.Forms.PropertyGrid();
-            this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
+            this.propertyGrid2 = new PropertyGridEx();
             this.textBoxEx1 = new CustomDrawApp.TextBoxEx();
-            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
+            this.propertyGrid1 = new PropertyGridEx();
+            this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
             this.SuspendLayout();
             // 
             // propertyGrid2
@@ -42,19 +42,7 @@
             this.propertyGrid2.Name = "propertyGrid2";
             this.propertyGrid2.SelectedObject = this.textBoxEx1;
             this.propertyGrid2.Size = new System.Drawing.Size(252, 440);
-            this.propertyGrid2.TabIndex = 8;
-            // 
-            // dateTimePickerEx1
-            // 
-            this.dateTimePickerEx1.BackColor = System.Drawing.Color.Green;
-            this.dateTimePickerEx1.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.dateTimePickerEx1.ForeColor = System.Drawing.SystemColors.Window;
-            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 25);
-            this.dateTimePickerEx1.Name = "dateTimePickerEx1";
-            this.dateTimePickerEx1.ShowCheckBox = true;
-            this.dateTimePickerEx1.ShowUpDown = true;
-            this.dateTimePickerEx1.Size = new System.Drawing.Size(252, 31);
-            this.dateTimePickerEx1.TabIndex = 5;
+            this.propertyGrid2.TabIndex = 0;
             // 
             // textBoxEx1
             // 
@@ -77,6 +65,18 @@
             this.propertyGrid1.Size = new System.Drawing.Size(252, 440);
             this.propertyGrid1.TabIndex = 6;
             // 
+            // dateTimePickerEx1
+            // 
+            this.dateTimePickerEx1.BackColor = System.Drawing.Color.Green;
+            this.dateTimePickerEx1.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.dateTimePickerEx1.ForeColor = System.Drawing.SystemColors.Window;
+            this.dateTimePickerEx1.Location = new System.Drawing.Point(12, 25);
+            this.dateTimePickerEx1.Name = "dateTimePickerEx1";
+            this.dateTimePickerEx1.ShowCheckBox = true;
+            this.dateTimePickerEx1.ShowUpDown = true;
+            this.dateTimePickerEx1.Size = new System.Drawing.Size(252, 31);
+            this.dateTimePickerEx1.TabIndex = 5;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -95,10 +95,10 @@
 
         #endregion
 
-        private System.Windows.Forms.PropertyGrid propertyGrid1;
+        private PropertyGridEx propertyGrid1;
         private DateTimePickerEx dateTimePickerEx1;
         private TextBoxEx textBoxEx1;
-        private System.Windows.Forms.PropertyGrid propertyGrid2;
+        private PropertyGridEx propertyGrid2;
     }
 }
 

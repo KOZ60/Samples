@@ -95,6 +95,9 @@ namespace CustomDrawApp
                 return _CaretWidth;
             }
             set {
+                if (value < 1) {
+                    throw new ArgumentException();
+                }
                 if (CaretWidth != value) {
                     _CaretWidth = value;
                     SetupCaret();

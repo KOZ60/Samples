@@ -48,6 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomCaret.cs" />
+    <Compile Include="PropertyGridEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="TextBoxEx.cs">
       <SubType>Component</SubType>
     </Compile>
