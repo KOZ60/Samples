@@ -1,9 +1,9 @@
 ﻿namespace IniFileForNotepad
 {
-    using System.Runtime.InteropServices;
-    using System.Text;
     using System;
     using System.ComponentModel;
+    using System.Runtime.InteropServices;
+    using System.Text;
 
     internal static class NativeMethods
     {

@@ -1,10 +1,8 @@
 ﻿namespace IniFileForNotepad
 {
-    using System;
-    using System.Runtime.InteropServices;
     using System.Collections.Generic;
-    using System.Text;
     using System.Linq;
+    using System.Text;
 
     internal static class UTL
     {
