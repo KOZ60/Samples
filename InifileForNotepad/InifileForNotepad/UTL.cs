@@ -1,6 +1,7 @@
 ﻿namespace IniFileForNotepad
 {
     using System;
+    using System.Runtime.InteropServices;
     using System.Collections.Generic;
     using System.Text;
     using System.Linq;
@@ -87,6 +88,15 @@
 
         private static CharacterSet DetectCharacterSetPureText(byte[] bytes)
         {
+            // icu.dll が存在していれば使用する
+            if(NativeMethods.DetectICU()) {
+                var name = NativeMethods.DetectCharacterSetCUI(bytes);
+                if (name == "UTF-8") {
+                    return CharacterSet.UTF8N;
+                }
+                return CharacterSet.SJIS;
+            }           
+            
             // DOBON.NET より拝借(euc の判定を除く)
             // https://dobon.net/vb/dotnet/string/detectcode.html#jcode
 
@@ -127,11 +137,7 @@
                 return CharacterSet.UTF8N;
             }
 
-            if (sjis > 0) {
-                return CharacterSet.SJIS;
-            }
-
-            return CharacterSet.Default;
+            return CharacterSet.SJIS;
         }
     }
 }

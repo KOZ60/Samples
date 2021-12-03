@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace IniFileForNotepad
 {
@@ -17,9 +18,25 @@ namespace IniFileForNotepad
         /// </summary>
         static void Main(string[] args) {
             var rootDir = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+
+            var iniFilesOut = Path.Combine(rootDir, "Create");
+            if (Directory.Exists(iniFilesOut)) {
+                Directory.Delete(iniFilesOut, true);
+            }
+
+            foreach (CharacterSet character in Enum.GetValues(typeof(CharacterSet)) ) {
+                var target = Path.Combine(iniFilesOut, character.ToString() + ".ini");
+                using (var ini = new MLangInifile(target, character)) {
+                    ini.WritePrivateProfileString("CharacterSet", "LANG", character.ToString());
+                    ini.WritePrivateProfileString("日本語", "日本語", "日本語");
+                }
+                Process.Start("notepad", target);
+            }
+            Console.Write(@"何かキーを押してください。");
+            Console.ReadKey();
+
             var iniFilesDir = Path.Combine(rootDir, "IniFiles");
             var iniFiles = Directory.GetFiles(iniFilesDir);
-
             Array.Sort(iniFiles);
 
             Console.Write(@"==============================================");
