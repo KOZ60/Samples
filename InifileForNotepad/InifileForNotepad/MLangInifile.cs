@@ -13,7 +13,9 @@
         readonly bool useTempFile;
         bool writed = false;
 
-        public MLangInifile(string fileName)
+        public MLangInifile(string fileName) : this(fileName, CharacterSet.Default) { }
+
+        public MLangInifile(string fileName, CharacterSet forceCaracterSet)
         {
             inifileName = fileName;
             targetFile = fileName;
@@ -21,33 +23,69 @@
             encoding = Encoding.Default;
             useTempFile = false;
 
+            byte[] bytes = null;
+
             if (File.Exists(inifileName)) {
 
-                // ファイルの内容をバイト配列に格納し、キャラクタセットを特定する
+                // ファイルの内容をバイト配列に格納
 
-                byte[] bytes = File.ReadAllBytes(inifileName);
-                caracterSet = UTL.DetectCharacterSet(bytes);
-                encoding = UTL.Encodings[caracterSet];
+                bytes = File.ReadAllBytes(inifileName);
 
-                // ini ファイルの API は SJIS および UTF16 のファイルを読み書きできるので
-                // それ以外は UTF16 にデコードしてテンポラリに書き込み操作する
-
-                switch (caracterSet) {
-                    case CharacterSet.Default:
-                    case CharacterSet.SJIS:
-                    case CharacterSet.UTF16:
-                        break;
-
-                    default:
-                        useTempFile = true;
-                        targetFile = Path.GetTempFileName();
-                        // BOM を除いてデコード
-                        int start = encoding.GetPreamble().Length;
-                        int count = bytes.Length - start;
-                        string buffer = encoding.GetString(bytes, start, count);
-                        File.WriteAllText(targetFile, buffer, Encoding.Unicode);
-                        break;
+                // Default が指定されたらファイルの内容で自動判定
+                if (forceCaracterSet == CharacterSet.Default) {
+                    caracterSet = UTL.DetectCharacterSet(bytes);
+                } else {
+                    caracterSet = forceCaracterSet;
                 }
+            } else {
+                caracterSet = forceCaracterSet;
+            }
+
+            // キャラクタセットから Encoding を取得
+            encoding = UTL.Encodings[caracterSet];
+
+            // ini ファイルの API は SJIS および UTF16 のファイルを読み書きできるので
+            // それ以外は UTF16 にデコードしてテンポラリに書き込み操作する
+
+            switch (caracterSet) {
+                case CharacterSet.Default:
+                case CharacterSet.SJIS:
+                    break;
+
+                case CharacterSet.UTF16:
+                    // ファイルが存在しなければテンポラリを対象
+                    if (bytes == null) useTempFile = true;
+                    break;
+
+                default:
+                    useTempFile = true;
+                    break;
+            }
+            if (useTempFile) {
+                targetFile = Path.GetTempFileName();
+                if (bytes != null) {
+                    // BOM を除いてデコード
+                    int start = encoding.GetPreamble().Length;
+                    int count = bytes.Length - start;
+                    string buffer = encoding.GetString(bytes, start, count);
+                    WriteAllText(targetFile, buffer, Encoding.Unicode);
+                } else {
+                    WriteAllText(targetFile, string.Empty, Encoding.Unicode);
+                }
+            }
+        }
+
+        private void WriteAllText(string fileName, string buffer, Encoding encoding)
+        {
+            MakeSureDirectoryPathExists(fileName);
+            File.WriteAllText(fileName, buffer, encoding);
+        }
+
+        private void MakeSureDirectoryPathExists(string targetFile)
+        {
+            var dir = Path.GetDirectoryName(targetFile);
+            if (!Directory.Exists(dir)) {
+                Directory.CreateDirectory(dir);
             }
         }
 
@@ -61,7 +99,7 @@
         {
             if (useTempFile && writed) {
                 string buffer = File.ReadAllText(targetFile, Encoding.Unicode);
-                File.WriteAllText(inifileName, buffer, encoding);
+                WriteAllText(inifileName, buffer, encoding);
             }
             writed = false;
         }
@@ -121,6 +159,7 @@
             string lpAppName,
             string lpString)
         {
+            MakeSureDirectoryPathExists(targetFile);
             var result = NativeMethods.WritePrivateProfileSection(
                                     lpAppName,
                                     lpString,
@@ -134,6 +173,7 @@
             string lpKeyName,
             string lpString)
         {
+            MakeSureDirectoryPathExists(targetFile);
             var result = NativeMethods.WritePrivateProfileString(
                                                 lpAppName,
                                                 lpKeyName,
