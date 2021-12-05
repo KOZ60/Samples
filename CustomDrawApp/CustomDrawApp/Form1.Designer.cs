@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.propertyGrid2 = new PropertyGridEx();
+            this.propertyGrid2 = new System.Windows.Forms.PropertyGrid();
             this.textBoxEx1 = new CustomDrawApp.TextBoxEx();
-            this.propertyGrid1 = new PropertyGridEx();
+            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
             this.dateTimePickerEx1 = new CustomDrawApp.DateTimePickerEx();
             this.SuspendLayout();
             // 
@@ -95,10 +95,10 @@
 
         #endregion
 
-        private PropertyGridEx propertyGrid1;
+        private System.Windows.Forms.PropertyGrid propertyGrid1;
         private DateTimePickerEx dateTimePickerEx1;
         private TextBoxEx textBoxEx1;
-        private PropertyGridEx propertyGrid2;
+        private System.Windows.Forms.PropertyGrid propertyGrid2;
     }
 }
 

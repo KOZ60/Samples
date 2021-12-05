@@ -11,11 +11,5 @@
         {
             InitializeComponent();
         }
-
-        protected override void OnShown(EventArgs e) {
-            base.OnShown(e);
-            propertyGrid1.GoToTop();
-            propertyGrid2.GoToTop();
-        }
     }
 }
