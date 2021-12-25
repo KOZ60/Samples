@@ -4,33 +4,30 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace WindowsFormsApp1
+namespace Koz.Windows.Forms
 {
-
     /// <summary>
-    /// TextBox のときは Multiline でなければダメ
+    /// 不要になりました。
     /// </summary>
-    public class BackColorKeeper : NativeWindow
+    /// <remarks>Multiline でなければダメ</remarks>
+    public class BackColorKeeper : NativeWindowBase<Control>
     {
-        private Control owner;
         private Control parent;
         private NativeBrush backColorBrush;
 
-        public BackColorKeeper(Control control) {
-            owner = control;
-            owner.ParentChanged += Owner_ParentChanged;
-            owner.Disposed += Owner_Disposed;
-            Parent = owner.Parent;
+        public BackColorKeeper(Control control) : base(control) {
+            Owner.ParentChanged += Owner_ParentChanged;
+            Parent = Owner.Parent;
         }
 
-        private void Owner_Disposed(object sender, EventArgs e) {
+        protected override void OnDisposed(EventArgs e) {
+            base.OnDisposed(e);
             Parent = null;
-            owner.ParentChanged -= Owner_ParentChanged;
-            owner.Disposed -= Owner_Disposed;
+            Owner.ParentChanged -= Owner_ParentChanged;
         }
 
         private void Owner_ParentChanged(object sender, EventArgs e) {
-            Parent = owner.Parent;
+            Parent = Owner.Parent;
         }
 
         protected Control Parent {
@@ -86,7 +83,7 @@ namespace WindowsFormsApp1
         }
 
         private void WmCtlColorControl(ref Message m) {
-            if (owner.IsHandleCreated && m.LParam == owner.Handle) {
+            if (Owner.IsHandleCreated && m.LParam == Owner.Handle) {
                 m.Result = InitializeDCForWmCtlColor(m.WParam, m.Msg);
             } else {
                 base.WndProc(ref m);
@@ -94,17 +91,15 @@ namespace WindowsFormsApp1
         }
 
         protected virtual IntPtr InitializeDCForWmCtlColor(IntPtr dc, int msg) {
-            NativeMethods.SetTextColor(new HandleRef(null, dc), ColorTranslator.ToWin32(owner.ForeColor));
-            NativeMethods.SetBkColor(new HandleRef(null, dc), ColorTranslator.ToWin32(owner.BackColor));
-
-            System.Diagnostics.Debug.Print("{0}", BackColorBrush.Color);
+            NativeMethods.SetTextColor(new HandleRef(null, dc), ColorTranslator.ToWin32(Owner.ForeColor));
+            NativeMethods.SetBkColor(new HandleRef(null, dc), ColorTranslator.ToWin32(Owner.BackColor));
             return BackColorBrush.Handle;
         }
 
         private class NativeBrush : SafeHandleZeroOrMinusOneIsInvalid
         {
             public Color Color { get; }
-            private bool needDelete;
+            private readonly bool needDelete;
 
             public NativeBrush(Color color) : base(true) {
                 Color = color;
@@ -132,15 +127,14 @@ namespace WindowsFormsApp1
             }
         }
 
-
         private NativeBrush BackColorBrush {
             get {
                 if (backColorBrush == null) {
-                    backColorBrush = new NativeBrush(owner.BackColor);
+                    backColorBrush = new NativeBrush(Owner.BackColor);
 
-                } else if (backColorBrush.Color != owner.BackColor) {
+                } else if (backColorBrush.Color != Owner.BackColor) {
                     backColorBrush.Dispose();
-                    backColorBrush = new NativeBrush(owner.BackColor);
+                    backColorBrush = new NativeBrush(Owner.BackColor);
                 }
                 return backColorBrush;
             }

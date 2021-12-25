@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using Microsoft.Win32.SafeHandles;
 
-namespace WindowsFormsApp1
+namespace Koz.Windows.Forms
 {
     internal static class NativeMethods
     {
@@ -19,10 +19,15 @@ namespace WindowsFormsApp1
             public const string Gdi32 = "gdi32.dll";
         }
 
+        public static IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+
         public const int
+            WM_SETFOCUS = 0x0007,
+            WM_KILLFOCUS = 0x0008,
             WM_SETTEXT = 0x000C,
             WM_PAINT = 0x000F,
             WM_KEYDOWN = 0x0100,
+            WM_CHAR = 0x0102,
             WM_ERASEBKGND = 0x0014,
             WM_PASTE = 0x0302,
             WM_PRINTCLIENT = 0x0318,
@@ -303,9 +308,6 @@ namespace WindowsFormsApp1
         [DllImport(ExternDll.User32)]
         public static extern bool MapDialogRect(HandleRef hWnd, ref RECT lpRect);
 
-        [DllImport(ExternDll.User32)]
-        public static extern bool ShowCaret(HandleRef hwnd);
-
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern int GetWindowText(HandleRef hwnd, StringBuilder lpString, int maxCount);
 
@@ -405,44 +407,24 @@ namespace WindowsFormsApp1
             Opqque = 2,
         }
 
-        // TextBox, RichTextBox
-        //public const int WB_LEFT = 0;
-        //public const int WB_RIGHT = 1;
-        //public const int WB_ISDELIMITER = 2;
-        // RichTextBox
-        //public const int WB_CLASSIFY = 3;
-        //public const int WB_MOVEWORDLEFT = 4;
-        //public const int WB_MOVEWORDRIGHT = 5;
-        //public const int WB_LEFTBREAK = 6;
-        //public const int WB_RIGHTBREAK = 7;
-
-        public enum EditWordBreakCode
-        {
-            Left,
-            Right,
-            IsDelimiter,
-        }
-
-        public enum RichEditWordBreakCode
-        {
-            Left,
-            Right,
-            IsDelimiter,
-            Classify,
-            MoveWordLeft,
-            MoveWordRight,
-            LeftBreak,
-            RightBreak,
-        }
-
-        public delegate int EditWordBreakProc(IntPtr lpch, int ichCurrent, int cch, EditWordBreakCode code);
-        public delegate int RicEditWordBreakProc(IntPtr lpch, int ichCurrent, int cch, RichEditWordBreakCode code);
-
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessage(HandleRef hWnd, int msgId, IntPtr wParam, EditWordBreakProc lParam);
+        public static extern IntPtr SendMessage(HandleRef hWnd, int msgId, IntPtr wParam, Delegate lParam);
 
-        [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessage(HandleRef hWnd, int msgId, IntPtr wParam, RichEditWordBreakCode lParam);
+        [DllImport(ExternDll.User32)]
+        public static extern bool ShowCaret(HandleRef hWnd);
+
+        [DllImport(ExternDll.User32)]
+        public static extern bool HideCaret(HandleRef hWnd);
+
+        [DllImport(ExternDll.User32)]
+        public static extern bool GetCaretPos(out POINTL lpPoint);
+
+        [DllImport(ExternDll.User32)]
+        public static extern bool CreateCaret(
+                HandleRef hwnd, CaretBitmap hbitmap, int width, int height);
+
+        [DllImport(ExternDll.User32)]
+        public static extern bool DestroyCaret();
 
     }
 }

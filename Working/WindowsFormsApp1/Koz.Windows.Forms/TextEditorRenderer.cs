@@ -4,9 +4,8 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 
-namespace WindowsFormsApp1
+namespace Koz.Windows.Forms
 {
     public class TextEditorRenderer
     {
@@ -14,27 +13,27 @@ namespace WindowsFormsApp1
         // -------------------------------------------------------------------------------
         // Static
         // -------------------------------------------------------------------------------
-
-        public static void DrawClient(TextEditor editor, Graphics graphics) {
-            DrawClient(editor, graphics, editor.ShowMarker, editor.MarkerColor, editor.TabWidth);
+        public static void DrawClient(TextEditor editor, PaintEventArgs e) {
+            DrawClient(editor, e.Graphics, e.ClipRectangle);
         }
 
-        public static void DrawClient(TextBoxBase editor, Graphics graphics, bool showMarker, Color markerColor, int tabWidth) {
-            DrawClient(editor, graphics, editor.Text, showMarker, markerColor, tabWidth);
+        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip) {
+            DrawClient(editor, graphics, clip, 
+                        editor.ShowMarker, editor.MarkerColor, editor.TabWidth);
         }
 
-        public static void DrawClient(
-                            TextBoxBase editor, Graphics graphics, 
-                            string text, 
+        public static void DrawClient(TextBoxBase editor, Graphics graphics, Rectangle clip,
+                                        bool showMarker, Color markerColor, int tabWidth) {
+            DrawClient(editor, graphics, clip, editor.Text, showMarker, markerColor, tabWidth);
+        }
+
+        public static void DrawClient(TextBoxBase editor, Graphics graphics,
+                            Rectangle clip, string text,
                             bool showMarker, Color markerColor, int tabWidth) {
             TextEditorRenderer renderer = new TextEditorRenderer(editor);
-            renderer.DrawClient(graphics, text, showMarker, markerColor, tabWidth);
+            renderer.DrawClient(graphics, clip, text, showMarker, markerColor, tabWidth);
         }
 
-        public static Size GetAverageFontSize(TextBoxBase editor) {
-            TextEditorRenderer renderer = new TextEditorRenderer(editor);
-            return renderer.GetAverageFontSize();
-        }
 
         private const char DISPLAY_WIDE_SPACE = '\u2610';
         private const char DISPLAY_HALF_SPACE = '_';
@@ -58,7 +57,7 @@ namespace WindowsFormsApp1
         private TextBoxBase owner;
         private SelectionRange selectionRange;
         private DrawColors drawColors;
-        private NativeMethods.TEXTMETRICW textMetrics;
+        private Size fontSizeAverage;
         private bool showMarker;
         private int tabWidth;
 
@@ -66,37 +65,30 @@ namespace WindowsFormsApp1
             this.owner = editor;
         }
 
-        protected Size GetAverageFontSize() {
-            HandleRef hdc = new HandleRef(this, NativeMethods.GetDC(new HandleRef(this, IntPtr.Zero)));
-            HandleRef hFont = new HandleRef(this, owner.Font.ToHfont());
-            HandleRef oldFont = new HandleRef(this, NativeMethods.SelectObject(hdc, hFont));
-            NativeMethods.GetTextMetricsW(hdc, out NativeMethods.TEXTMETRICW tmNative);
-            NativeMethods.SelectObject(hdc, oldFont);
-            NativeMethods.DeleteObject(hFont);
-            NativeMethods.DeleteDC(hFont);
-            return new Size(tmNative.tmAveCharWidth, tmNative.tmHeight);
-        }
-
-        protected virtual void DrawClient(Graphics graphics, string text, bool showMarker, Color markerColor, int tabWidth) {
+        protected virtual void DrawClient(Graphics graphics, Rectangle clip, string text, bool showMarker, Color markerColor, int tabWidth) {
             this.showMarker = showMarker;
             this.selectionRange = new SelectionRange(owner);
             this.drawColors = new DrawColors(owner, markerColor);
             this.tabWidth = tabWidth;
 
-            graphics.Clear(owner.BackColor);
+            using (var brush = new SolidBrush(owner.BackColor)) {
+                graphics.FillRectangle(brush, clip);
+            }
 
             HandleRef hdc = new HandleRef(this, graphics.GetHdc());
             HandleRef hFont = new HandleRef(this, owner.Font.ToHfont());
             HandleRef oldFont = new HandleRef(this, NativeMethods.SelectObject(hdc, hFont));
-            NativeMethods.GetTextMetricsW(hdc, out textMetrics);
+            fontSizeAverage = UTL.GetFontSizeAverageFromHdc(hdc);
 
             try {
                 int lineCount = SendMessage(NativeMethods.EM_GETLINECOUNT);
-                int startLine = SendMessage(NativeMethods.EM_GETFIRSTVISIBLELINE);
-                int bottom = owner.ClientRectangle.Bottom;
+                int startCharIndex = owner.GetCharIndexFromPosition(clip.Location);
+                int startLine = owner.GetLineFromCharIndex(startCharIndex);
+                int bottom = clip.Bottom;
 
                 for (int i = startLine; i < lineCount; i++) {
-                    int lineStart = SendMessage(NativeMethods.EM_LINEINDEX, new IntPtr(i), IntPtr.Zero);
+                    int lineStart = owner.GetFirstCharIndexFromLine(i); 
+                    
                     if (lineStart == -1) {
                         break;
                     }
@@ -177,9 +169,9 @@ namespace WindowsFormsApp1
         private void DrawTabHighlight(HandleRef hdc, Point pt) {
             Point minPt = owner.GetPositionFromCharIndex(0);
             int X = pt.X - minPt.X;
-            int tabPixelWidth = textMetrics.tmAveCharWidth * tabWidth;
+            int tabPixelWidth = fontSizeAverage.Width * tabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
-            var rect = new Rectangle(pt, new Size(width, textMetrics.tmHeight));
+            var rect = new Rectangle(pt, new Size(width, fontSizeAverage.Height));
             using (var g = Graphics.FromHdcInternal(hdc.Handle)) {
                 g.FillRectangle(SystemBrushes.Highlight, rect);
             }

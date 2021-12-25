@@ -16,19 +16,12 @@ namespace WindowsFormsApp1
         public Form1()
         {
             InitializeComponent();
-
-            //textEditor1.BackgroundImageLayout = ImageLayout.Zoom;
-            //textEditor1.BackgroundImage = Image.FromFile(@"D:\TEST\BACK.jpg");
         }
 
-        private void button1_Click(object sender, EventArgs e) {
-            for (int i = 0; i < textEditor1.TextLength; i++) {
-                Debug.Print("{0} {1} {2}", i, textEditor1.Text[i], textEditor1.GetPositionFromCharIndex(i));
-            }
-        }
-
-        private void propertyGrid1_Click(object sender, EventArgs e) {
-
+        protected override void OnShown(EventArgs e) {
+            base.OnShown(e);
+            propertyGrid1.SelectedObject = textEditor1;
+            propertyGrid1.GotoTop();
         }
     }
 }

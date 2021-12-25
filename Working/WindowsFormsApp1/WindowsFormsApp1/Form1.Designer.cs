@@ -29,10 +29,9 @@ namespace WindowsFormsApp1
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.textEditor1 = new WindowsFormsApp1.TextEditor();
-            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
+            this.propertyGrid1 = new Koz.Windows.Forms.PropertyGridEx();
+            this.textEditor1 = new Koz.Windows.Forms.TextEditor();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -56,26 +55,21 @@ namespace WindowsFormsApp1
             this.splitContainer1.SplitterDistance = 569;
             this.splitContainer1.TabIndex = 0;
             // 
-            // textEditor1
-            // 
-            this.textEditor1.AcceptsTab = true;
-            this.textEditor1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textEditor1.Font = new System.Drawing.Font("ＭＳ ゴシック", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.textEditor1.Location = new System.Drawing.Point(0, 0);
-            this.textEditor1.Name = "textEditor1";
-            this.textEditor1.Size = new System.Drawing.Size(569, 513);
-            this.textEditor1.TabIndex = 0;
-            this.textEditor1.Text = resources.GetString("textEditor1.Text");
-            // 
             // propertyGrid1
             // 
             this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertyGrid1.Location = new System.Drawing.Point(0, 0);
             this.propertyGrid1.Name = "propertyGrid1";
-            this.propertyGrid1.SelectedObject = this.textEditor1;
             this.propertyGrid1.Size = new System.Drawing.Size(210, 513);
             this.propertyGrid1.TabIndex = 0;
-            this.propertyGrid1.Click += new System.EventHandler(this.propertyGrid1_Click);
+            // 
+            // textEditor1
+            // 
+            this.textEditor1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textEditor1.Location = new System.Drawing.Point(0, 0);
+            this.textEditor1.Name = "textEditor1";
+            this.textEditor1.Size = new System.Drawing.Size(569, 513);
+            this.textEditor1.TabIndex = 0;
             // 
             // Form1
             // 
@@ -97,8 +91,8 @@ namespace WindowsFormsApp1
         #endregion
 
         private System.Windows.Forms.SplitContainer splitContainer1;
-        private TextEditor textEditor1;
-        private System.Windows.Forms.PropertyGrid propertyGrid1;
+        private Koz.Windows.Forms. PropertyGridEx propertyGrid1;
+        private Koz.Windows.Forms.TextEditor textEditor1;
     }
 }
 
