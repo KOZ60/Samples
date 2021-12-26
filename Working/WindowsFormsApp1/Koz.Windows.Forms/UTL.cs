@@ -7,8 +7,7 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public static class UTL
-    {
+    public static class UTL {
         // フォントサイズの平均値を取得
         public static Size GetFontSizeAverage(Font font) {
             HandleRef hdc = new HandleRef(null, NativeMethods.GetDC(new HandleRef(null, IntPtr.Zero)));
@@ -95,5 +94,12 @@ namespace Koz.Windows.Forms
             int y = SignedHIWORD(lparam);
             return new Point(x, y);
         }
+
+        public static Point InvalidPoint = new Point(int.MinValue, int.MinValue);
+
+        public static bool IsInvalid(this Point pt) {
+            return pt == InvalidPoint;
+        }
+
     }
 }

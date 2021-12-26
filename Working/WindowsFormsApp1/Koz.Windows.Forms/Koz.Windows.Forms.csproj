@@ -47,7 +47,6 @@
   <ItemGroup>
     <Compile Include="BackColorKeeper.cs" />
     <Compile Include="CaretController.cs" />
-    <Compile Include="CaretBitmap.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NativeWindowBase.cs" />
     <Compile Include="OwnerDrawController.cs" />

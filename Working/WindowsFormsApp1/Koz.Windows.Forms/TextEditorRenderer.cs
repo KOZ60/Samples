@@ -53,7 +53,7 @@ namespace Koz.Windows.Forms
         // Instance
         // -------------------------------------------------------------------------------
 
-        private TextBoxBase owner;
+        private Control owner;
         private SelectionRange selectionRange;
         private DrawColors drawColors;
         private Size fontSizeAverage;
@@ -80,18 +80,21 @@ namespace Koz.Windows.Forms
             fontSizeAverage = UTL.GetFontSizeAverageFromHdc(hdc);
 
             try {
-                int lineCount = SendMessage(NativeMethods.EM_GETLINECOUNT);
-                int startLine = SendMessage(NativeMethods.EM_GETFIRSTVISIBLELINE); 
+                int lineCount = (int)SendMessage(NativeMethods.EM_GETLINECOUNT);
+                int startLine = (int)SendMessage(NativeMethods.EM_GETFIRSTVISIBLELINE); 
                 int bottom = clip.Bottom;
 
                 for (int i = startLine; i < lineCount; i++) {
 
-                    int lineStart = owner.GetFirstCharIndexFromLine(i); 
+                    int lineStart = GetFirstCharIndexFromLine(i); 
                     if (lineStart == -1) {
                         break;
                     }
 
-                    Point pt = owner.GetPositionFromCharIndex(lineStart);
+                    Point pt = GetPositionFromCharIndex(lineStart);
+                    if (pt.IsInvalid()) {
+                        continue;
+                    }
                     if (pt.Y > bottom) {
                         break;
                     }
@@ -124,7 +127,7 @@ namespace Koz.Windows.Forms
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
                         DrawPart(hdc, prevMode.Value, pt, sb);
                         sb.Clear();
-                        pt = owner.GetPositionFromCharIndex(pos);
+                        pt = GetPositionFromCharIndex(pos);
                     }
                 }
                 sb.Append(c);
@@ -144,7 +147,7 @@ namespace Koz.Windows.Forms
                 c = outchar;
                 mode |= DrawMode.Marker;
             }
-            if ((!owner.HideSelection || owner.Focused) && selectionRange.Contains(pos)) {
+            if ((!HideSelection || owner.Focused) && selectionRange.Contains(pos)) {
                 mode |= DrawMode.Highlight;
             }
             if (!owner.Enabled) {
@@ -168,7 +171,7 @@ namespace Koz.Windows.Forms
         }
 
         private void DrawTabHighlight(HandleRef hdc, Point pt) {
-            Point minPt = owner.GetPositionFromCharIndex(0);
+            Point minPt = GetPositionFromCharIndex(0);
             int X = pt.X - minPt.X;
             int tabPixelWidth = fontSizeAverage.Width * tabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
@@ -178,12 +181,12 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private int SendMessage(int msg) {
+        protected IntPtr SendMessage(int msg) {
             return SendMessage(msg, IntPtr.Zero, IntPtr.Zero);
         }
 
-        private int SendMessage(int msg, IntPtr wParam, IntPtr lParam) {
-            return (int)NativeMethods.SendMessage(
+        protected IntPtr SendMessage(int msg, IntPtr wParam, IntPtr lParam) {
+            return NativeMethods.SendMessage(
                             new HandleRef(this, owner.Handle),
                             msg,
                             wParam,
@@ -215,10 +218,10 @@ namespace Koz.Windows.Forms
 
         private class DrawColors : Dictionary<DrawMode, DrawColor>
         {
-            private TextBoxBase Editor;
+            private Control Editor;
             private Color MarkerColor;
 
-            public DrawColors(TextBoxBase editor, Color markerColor) {
+            public DrawColors(Control editor, Color markerColor) {
                 Editor = editor;
                 MarkerColor = markerColor;
                 Add(DrawMode.Normal, new DrawColor(editor.ForeColor, editor.BackColor));
@@ -261,12 +264,36 @@ namespace Koz.Windows.Forms
 
         private class SelectionRange : Range
         {
-            public SelectionRange(TextBoxBase editor) {
+            public SelectionRange(Control editor) {
                 NativeMethods.SendMessage(
                                  new HandleRef(editor, editor.Handle),
                                  NativeMethods.EM_GETSEL,
                                  out Start, out End);
             }
+        }
+
+        protected int WindowStyle {
+            get {
+                return unchecked((int)(long)NativeMethods.GetWindowLong(new HandleRef(this,owner.Handle), NativeMethods.GWL_STYLE));
+            }
+        }
+
+        protected bool HideSelection {
+            get {
+                return (WindowStyle & NativeMethods.ES_NOHIDESEL) == 0;
+            }
+        }
+
+        protected virtual int GetFirstCharIndexFromLine(int lineNumber) {
+            return unchecked((int)(long)SendMessage(NativeMethods.EM_LINEINDEX, new IntPtr(lineNumber), IntPtr.Zero));
+        }
+
+        protected virtual Point GetPositionFromCharIndex(int index) {
+            IntPtr pt = SendMessage(NativeMethods.EM_POSFROMCHAR, new IntPtr(index), IntPtr.Zero);
+            if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
+                return UTL.InvalidPoint;
+            }
+            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
         }
     }
 }

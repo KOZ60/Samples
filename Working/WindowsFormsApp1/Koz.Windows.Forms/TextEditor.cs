@@ -27,7 +27,7 @@ namespace Koz.Windows.Forms
             base.ScrollBars = ScrollBars.Both;
             base.WordWrap = false;
             base.MaxLength = 0;
-            base.Multiline = true;  // 最後にしないと CreateHandle が動きまくる
+            base.Multiline = true;  // 最後にしないと CreateHandle が走る
             CanCreateHandle = true;
         }
 
@@ -194,15 +194,6 @@ namespace Koz.Windows.Forms
         public Point GetFirstCharPositionFromLine(int lineIndex) {
             int charIndex = GetFirstCharIndexFromLine(lineIndex);
             return GetPositionFromCharIndex(charIndex);
-        }
-
-        public override Point GetPositionFromCharIndex(int index) {
-            IntPtr pt = NativeMethods.SendMessage(new HandleRef(this, Handle),
-                                NativeMethods.EM_POSFROMCHAR, new IntPtr(index), IntPtr.Zero);
-            if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
-                return Point.Empty;
-            }
-            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
         }
 
         public override int GetCharIndexFromPosition(Point pt) {

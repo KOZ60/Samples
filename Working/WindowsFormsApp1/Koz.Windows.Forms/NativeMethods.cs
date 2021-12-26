@@ -107,6 +107,19 @@ namespace Koz.Windows.Forms
             EM_GETIMESTATUS = 0x00D9;
 
         public const int
+            ES_LEFT = 0x0000,
+            ES_CENTER = 0x0001,
+            ES_RIGHT = 0x0002,
+            ES_MULTILINE = 0x0004,
+            ES_UPPERCASE = 0x0008,
+            ES_LOWERCASE = 0x0010,
+            ES_AUTOVSCROLL = 0x0040,
+            ES_AUTOHSCROLL = 0x0080,
+            ES_NOHIDESEL = 0x0100,
+            ES_READONLY = 0x0800,
+            ES_PASSWORD = 0x0020;
+
+        public const int
             EC_LEFTMARGIN = 0x0001,
             EC_RIGHTMARGIN = 0x0002,
             EC_USEFONTINFO = 0xffff;
@@ -121,6 +134,14 @@ namespace Koz.Windows.Forms
             SBM_SETSCROLLINFO = 0x00E9,
             SBM_GETSCROLLINFO = 0x00EA,
             SBM_GETSCROLLBARINFO = 0x00EB;
+
+        public const int
+            GCL_WNDPROC = (-24),
+            GWL_WNDPROC = (-4),
+            GWL_HWNDPARENT = (-8),
+            GWL_STYLE = (-16),
+            GWL_EXSTYLE = (-20),
+            GWL_ID = (-12);
 
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int Msg, IntPtr wParam, IntPtr lParam);
@@ -426,32 +447,19 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.User32)]
         public static extern bool DestroyCaret();
 
+        public static IntPtr GetWindowLong(HandleRef hWnd, int nIndex) {
+            if (IntPtr.Size == 4) {
+                return GetWindowLong32(hWnd, nIndex);
+            }
+            return GetWindowLongPtr64(hWnd, nIndex);
+        }
 
-        //DECLSPEC_ALLOCATOR HLOCAL LocalReAlloc(
-        //  [in] _Frees_ptr_opt_ HLOCAL hMem,
-        //  [in] SIZE_T uBytes,
-        //  [in] UINT uFlags
-        //);    
+        [DllImport(ExternDll.User32, CharSet = CharSet.Auto, EntryPoint = "GetWindowLong")]
+        public static extern IntPtr GetWindowLong32(HandleRef hWnd, int nIndex);
 
-        //LPVOID LocalLock(
-        //  [in] HLOCAL hMem
-        //);
-        //BOOL LocalUnlock(
-        //  [in] HLOCAL hMem
-        //);
-        //SIZE_T LocalSize(
-        //  [in] HLOCAL hMem
-        //);
-        //HLOCAL LocalFree(
-        //  [in] _Frees_ptr_opt_ HLOCAL hMem
-        //);
-        //DECLSPEC_ALLOCATOR HLOCAL LocalAlloc(
-        //  [in] UINT uFlags,
-        //  [in] SIZE_T uBytes
-        //);
-        //UINT LocalFlags(
-        //  [in] HLOCAL hMem
-        //);
+        [DllImport(ExternDll.User32, CharSet = CharSet.Auto, EntryPoint = "GetWindowLongPtr")]
+        public static extern IntPtr GetWindowLongPtr64(HandleRef hWnd, int nIndex);
+
         [DllImport(ExternDll.Kernel32)]
         public static extern IntPtr LocalAlloc(int uFlags, IntPtr uBytes);
 
@@ -472,5 +480,6 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.Kernel32)]
         public static extern void RtlMoveMemory(IntPtr dest, IntPtr src, int size);
+
     }
 }
