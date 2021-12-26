@@ -15,7 +15,6 @@ namespace Koz.Windows.Forms
 
         public TextEditor() {
 
-
             OwnerDrawController = new OwnerDrawController(this);
             WrapModeController = new WrapModeController(this);
             CaretController = new CaretController(this);
@@ -42,11 +41,11 @@ namespace Koz.Windows.Forms
 
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
-            MemoryReAlloc(INITIAL_MEMORY_SIZE);
+            ReAllocMemory(INITIAL_MEMORY_SIZE);
             SetTabStop();
         }
 
-        protected void MemoryReAlloc(int nSizeNew) {
+        protected void ReAllocMemory(int nSizeNew) {
 
             IntPtr hMemOld = NativeMethods.SendMessage(new HandleRef(this, Handle),
                                     NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
@@ -85,9 +84,9 @@ namespace Koz.Windows.Forms
         }
 
         protected override void WndProc(ref Message m) {
+            //System.Diagnostics.Debug.Print(m.ToString());
             switch (m.Msg) {
 
-                case NativeMethods.WM_PASTE:
                 case NativeMethods.EM_SETSEL:
                 case NativeMethods.WM_HSCROLL:
                 case NativeMethods.WM_VSCROLL:
@@ -101,6 +100,10 @@ namespace Koz.Windows.Forms
 
                 case NativeMethods.WM_CHAR:
                     WmChar(ref m);
+                    break;
+
+                case NativeMethods.WM_PASTE:
+                    WmPaste(ref m);
                     break;
 
                 default:
@@ -152,6 +155,15 @@ namespace Koz.Windows.Forms
             }
         }
 
+        private void WmPaste(ref Message m) {
+            if (Clipboard.ContainsText()) {
+                string str = Clipboard.GetText();
+                int byteLen = (str.Length + TextLength) * 3;
+                ReAllocMemory(byteLen);
+                Paste(str);
+            }
+        }
+
         // キャレットの上下１行をクリップする
         private Rectangle GetCaretClip() {
             NativeMethods.GetCaretPos(out NativeMethods.POINTL pt);
@@ -182,6 +194,22 @@ namespace Koz.Windows.Forms
         public Point GetFirstCharPositionFromLine(int lineIndex) {
             int charIndex = GetFirstCharIndexFromLine(lineIndex);
             return GetPositionFromCharIndex(charIndex);
+        }
+
+        public override Point GetPositionFromCharIndex(int index) {
+            IntPtr pt = NativeMethods.SendMessage(new HandleRef(this, Handle),
+                                NativeMethods.EM_POSFROMCHAR, new IntPtr(index), IntPtr.Zero);
+            if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
+                return Point.Empty;
+            }
+            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
+        }
+
+        public override int GetCharIndexFromPosition(Point pt) {
+            int longPoint = UTL.MAKELONG(pt.X, pt.Y);
+            IntPtr index = NativeMethods.SendMessage(new HandleRef(this, Handle),
+                                        NativeMethods.EM_CHARFROMPOS, IntPtr.Zero, new IntPtr(longPoint));
+            return UTL.LOWORD(index);
         }
 
         public virtual void Refresh(Rectangle clip) {

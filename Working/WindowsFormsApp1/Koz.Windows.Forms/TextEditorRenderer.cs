@@ -81,24 +81,26 @@ namespace Koz.Windows.Forms
 
             try {
                 int lineCount = SendMessage(NativeMethods.EM_GETLINECOUNT);
-                int startCharIndex = owner.GetCharIndexFromPosition(clip.Location);
-                int startLine = owner.GetLineFromCharIndex(startCharIndex);
+                int startLine = SendMessage(NativeMethods.EM_GETFIRSTVISIBLELINE); 
                 int bottom = clip.Bottom;
 
                 for (int i = startLine; i < lineCount; i++) {
+
                     int lineStart = owner.GetFirstCharIndexFromLine(i); 
-                    
                     if (lineStart == -1) {
                         break;
                     }
+
                     Point pt = owner.GetPositionFromCharIndex(lineStart);
                     if (pt.Y > bottom) {
                         break;
                     }
+
                     int lineEnd = text.IndexOf('\r', lineStart);
                     if (lineEnd == -1) {
                         lineEnd = text.Length - 1;
                     }
+
                     Range drawRange = new Range(lineStart, lineEnd);
                     if (drawRange.Length > 0) {
                         DrawLine(hdc, pt, text, drawRange);
