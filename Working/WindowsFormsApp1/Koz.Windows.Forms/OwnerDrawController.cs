@@ -15,25 +15,6 @@ namespace Koz.Windows.Forms
 
         public OwnerDrawController(Control control) : base(control) { }
 
-        private int lockCount = 0;
-
-        public int LockWindow() {
-            if (lockCount == 0) {
-                NativeMethods.LockWindowUpdate(new HandleRef(this, Handle));
-            }
-            lockCount += 1;
-            return lockCount;
-        }
-
-        public int UnlockWindow() {
-            lockCount -= 1;
-            if (lockCount <= 0) {
-                NativeMethods.LockWindowUpdate(new HandleRef(this, IntPtr.Zero));
-                lockCount = 0;
-            }
-            return lockCount;
-        }
-
         protected override void WndProc(ref Message m) {
             switch (m.Msg) {
                 case NativeMethods.WM_PAINT:

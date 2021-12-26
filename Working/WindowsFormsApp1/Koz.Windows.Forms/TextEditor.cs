@@ -8,25 +8,73 @@ namespace Koz.Windows.Forms
 {
     public class TextEditor : TextBox
     {
+        private const int INITIAL_MEMORY_SIZE = 32767;
         private readonly WrapModeController WrapModeController;
         private readonly OwnerDrawController OwnerDrawController;
         private readonly CaretController CaretController;
 
         public TextEditor() {
 
+
             OwnerDrawController = new OwnerDrawController(this);
             WrapModeController = new WrapModeController(this);
             CaretController = new CaretController(this);
+            this.WrapMode = WrapModeController.DefaultWrapMode;
 
             OwnerDrawController.OwnerDraw += DrawController_OwnerDraw;
             WrapModeController.WordBreak += WrapModeController_WordBreak;
 
-            base.Multiline = true;
-            base.MaxLength = 0;
-            base.ScrollBars = ScrollBars.Both;
-            this.WrapMode = WrapModeController.DefaultWrapMode;
             SetStyle(ControlStyles.ResizeRedraw, true);
+            base.ScrollBars = ScrollBars.Both;
+            base.WordWrap = false;
+            base.MaxLength = 0;
+            base.Multiline = true;  // 最後にしないと CreateHandle が動きまくる
+            CanCreateHandle = true;
         }
+
+        protected bool CanCreateHandle { get; set; } = false;
+
+        protected override void CreateHandle() {
+            if (CanCreateHandle) {
+                base.CreateHandle();
+            }
+        }
+
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e);
+            MemoryReAlloc(INITIAL_MEMORY_SIZE);
+            SetTabStop();
+        }
+
+        protected void MemoryReAlloc(int nSizeNew) {
+
+            IntPtr hMemOld = NativeMethods.SendMessage(new HandleRef(this, Handle),
+                                    NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
+
+            int nSizeOld = (int)NativeMethods.LocalSize(hMemOld);
+            if (nSizeNew < nSizeOld) {
+                return;
+            }
+            int flags = NativeMethods.LocalFlags(hMemOld);
+            IntPtr hMemNew = NativeMethods.LocalAlloc(flags, new IntPtr(nSizeNew));
+            if (hMemNew == IntPtr.Zero) {
+                return;
+            }
+
+            IntPtr ptrOld = NativeMethods.LocalLock(hMemOld);
+            IntPtr ptrNew = NativeMethods.LocalLock(hMemNew);
+
+            NativeMethods.RtlMoveMemory(ptrNew, ptrOld, nSizeOld);
+
+            NativeMethods.LocalUnlock(hMemOld);
+            NativeMethods.LocalUnlock(hMemNew);
+
+            NativeMethods.SendMessage(new HandleRef(this, Handle),
+                                    NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
+
+            NativeMethods.LocalFree(hMemOld);
+        }
+
 
         private void DrawController_OwnerDraw(object sender, PaintEventArgs e) {
             TextEditorRenderer.DrawClient(this, e);
@@ -68,9 +116,9 @@ namespace Koz.Windows.Forms
 
         // 描画ロックして Invalidate
         private void WndProcWithLock(ref Message m) {
-            OwnerDrawController.LockWindow();
+            UTL.LockWindow(Handle);
             base.WndProc(ref m);
-            OwnerDrawController.UnlockWindow();
+            UTL.UnlockWindow();
             Invalidate();
         }
 
@@ -78,9 +126,9 @@ namespace Koz.Windows.Forms
             long KeyStateMask = 0x40000000;
             bool isRepeat = (m.LParam.ToInt64() & KeyStateMask) == KeyStateMask;
             var clip = GetCaretClip();
-            OwnerDrawController.LockWindow();
+            UTL.LockWindow(Handle);
             base.WndProc(ref m);
-            OwnerDrawController.UnlockWindow();
+            UTL.UnlockWindow();
             // リピート中は Refresh そうでなければ Invalidate
             if (isRepeat) {
                 Refresh(clip);
@@ -94,9 +142,9 @@ namespace Koz.Windows.Forms
                 Rectangle clip = GetCaretClip();
                 HandleRef hwnd = new HandleRef(this, Handle);
                 NativeMethods.HideCaret(hwnd);
-                OwnerDrawController.LockWindow();
+                UTL.LockWindow(Handle);
                 base.WndProc(ref m);
-                OwnerDrawController.UnlockWindow();
+                UTL.UnlockWindow();
                 Invalidate(clip, true);
                 NativeMethods.ShowCaret(hwnd);
             } else {
@@ -110,11 +158,11 @@ namespace Koz.Windows.Forms
             int currentLine = GetLineFromPosition(new Point(pt.x, pt.y));
 
             int startLine = currentLine > 0 ? currentLine - 1 : currentLine;
-            Point startPt = GetPositionFromLine(startLine);
+            Point startPt = GetFirstCharPositionFromLine(startLine);
 
             int lastIndex = GetLineCount() - 1;
             int endLine = currentLine + 1 > lastIndex ? lastIndex : currentLine + 1;
-            Point endPt = GetPositionFromLine(endLine);
+            Point endPt = GetFirstCharPositionFromLine(endLine);
 
             int top = startPt.Y;
             int bottom = endPt.Y + UTL.GetFontSizeAverage(this.Font).Height;
@@ -131,7 +179,7 @@ namespace Koz.Windows.Forms
             return GetLineFromCharIndex(charIndex);
         }
 
-        public Point GetPositionFromLine(int lineIndex) {
+        public Point GetFirstCharPositionFromLine(int lineIndex) {
             int charIndex = GetFirstCharIndexFromLine(lineIndex);
             return GetPositionFromCharIndex(charIndex);
         }
@@ -153,11 +201,6 @@ namespace Koz.Windows.Forms
                     }
                 }
             }
-        }
-
-        protected override void OnHandleCreated(EventArgs e) {
-            base.OnHandleCreated(e);
-            SetTabStop();
         }
 
         protected override void OnFontChanged(EventArgs e) {
@@ -194,9 +237,9 @@ namespace Koz.Windows.Forms
 
         private static class Category
         {
-            public const string Marker = "マーカー";
+            public const string Marker = "マーカー設定";
             public const string Editor = "エディタ拡張";
-            public const string Caret = "キャレット";
+            public const string Caret = "キャレット設定";
         }
 
         private static class ObsoleteMessage
@@ -604,7 +647,5 @@ namespace Koz.Windows.Forms
                 Events.RemoveHandler(EventWordBreak, value);
             }
         }
-
-
     }
 }

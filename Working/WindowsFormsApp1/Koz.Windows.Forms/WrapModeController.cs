@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -10,19 +11,19 @@ namespace Koz.Windows.Forms
         public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
 
         private delegate int EditWordBreakProc(IntPtr lpch, int ichCurrent, int cch, WordBreakCode code);
-        private readonly EditWordBreakProc EditWordBreakProcDelegate;
-        protected bool inDoubleClick = false;
+        private readonly EditWordBreakProc EditWordBreakDelegate;
+        protected bool inMouseEvent = false;
         protected WrapMode wrapMode;
 
         public WrapModeController(TextBoxBase textBox) : base(textBox) {
-            EditWordBreakProcDelegate = new EditWordBreakProc(EditWordBreak);
+            EditWordBreakDelegate = new EditWordBreakProc(EditWordBreak);
             this.WrapMode = WrapMode.NoWrap;
         }
 
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
             NativeMethods.SendMessage(new HandleRef(this, Handle),
-                    NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, EditWordBreakProcDelegate);
+                    NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, EditWordBreakDelegate);
         }
 
         public WrapMode WrapMode { 
@@ -42,20 +43,19 @@ namespace Koz.Windows.Forms
             }
         }
 
+
         protected override void WndProc(ref Message m) {
-            switch (m.Msg) {
-                case NativeMethods.WM_NCDESTROY:
-                    base.WndProc(ref m);
-                    ReleaseHandle();
-                    break;
-                case NativeMethods.WM_RBUTTONDBLCLK:
-                    inDoubleClick = true;
-                    base.WndProc(ref m);
-                    inDoubleClick = false;
-                    break;
-                default:
-                    base.WndProc(ref m);
-                    break;
+
+            // マウス操作があったらフラグをON
+            if (m.Msg >= NativeMethods.WM_MOUSEFIRST &&
+                m.Msg <= NativeMethods.WM_MOUSELAST) {
+
+                inMouseEvent = true;
+                base.WndProc(ref m);
+                inMouseEvent = false;
+
+            } else {
+                base.WndProc(ref m);
             }
         }
 
@@ -67,7 +67,7 @@ namespace Koz.Windows.Forms
 
         private int EditWordBreak(IntPtr lpch, int ichCurrent, int cch, WordBreakCode code) {
 
-            if (WrapMode == WrapMode.CharWrap && !inDoubleClick) {
+            if (WrapMode == WrapMode.CharWrap && !inMouseEvent) {
                 switch (code) {
                     case WordBreakCode.IsDelimiter:
                         return 0;

@@ -421,10 +421,56 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.User32)]
         public static extern bool CreateCaret(
-                HandleRef hwnd, CaretBitmap hbitmap, int width, int height);
+                HandleRef hwnd, SafeHandle hbitmap, int width, int height);
 
         [DllImport(ExternDll.User32)]
         public static extern bool DestroyCaret();
 
+
+        //DECLSPEC_ALLOCATOR HLOCAL LocalReAlloc(
+        //  [in] _Frees_ptr_opt_ HLOCAL hMem,
+        //  [in] SIZE_T uBytes,
+        //  [in] UINT uFlags
+        //);    
+
+        //LPVOID LocalLock(
+        //  [in] HLOCAL hMem
+        //);
+        //BOOL LocalUnlock(
+        //  [in] HLOCAL hMem
+        //);
+        //SIZE_T LocalSize(
+        //  [in] HLOCAL hMem
+        //);
+        //HLOCAL LocalFree(
+        //  [in] _Frees_ptr_opt_ HLOCAL hMem
+        //);
+        //DECLSPEC_ALLOCATOR HLOCAL LocalAlloc(
+        //  [in] UINT uFlags,
+        //  [in] SIZE_T uBytes
+        //);
+        //UINT LocalFlags(
+        //  [in] HLOCAL hMem
+        //);
+        [DllImport(ExternDll.Kernel32)]
+        public static extern IntPtr LocalAlloc(int uFlags, IntPtr uBytes);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern IntPtr LocalSize(IntPtr hMem);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern int LocalFlags(IntPtr hMem);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern IntPtr LocalLock(IntPtr hMem);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern bool LocalUnlock(IntPtr hMem);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern IntPtr LocalFree(IntPtr hMem);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern void RtlMoveMemory(IntPtr dest, IntPtr src, int size);
     }
 }

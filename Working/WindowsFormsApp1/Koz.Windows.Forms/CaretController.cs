@@ -1,17 +1,13 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Drawing;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
     public class CaretController : NativeWindowBase<Control>
     {
-
         public static Color DefaultCaretColor = Color.Black;
         public const int DefaultCaretWidth = 1;
 
@@ -47,7 +43,16 @@ namespace Koz.Windows.Forms
             }
         }
 
+        protected bool IsDefault {
+            get {
+                return CaretColor.IsEmpty && CaretWidth == DefaultCaretWidth;
+            }
+        }
+
         public void ShowCaret() {
+
+            if (IsDefault) return;
+
             NativeMethods.DestroyCaret();
             Size avg = UTL.GetFontSizeAverage(Owner.Font);
             Size caretSize = new Size(CaretWidth, avg.Height);
@@ -62,5 +67,58 @@ namespace Koz.Windows.Forms
             NativeMethods.ShowCaret(hwnd);
         }
 
+        public class CaretBitmap : SafeHandleMinusOneIsInvalid
+        {
+            private readonly IntPtr BLACK_HANDLE = IntPtr.Zero;
+
+            public CaretBitmap(Color color, Size size) : base(true) {
+                Color = color;
+                Size = size;
+
+                if (color.IsEmpty) {
+                    SetHandle(BLACK_HANDLE);
+                } else {
+                    using (var bmp = new Bitmap(Width, Height)) {
+                        using (var g = Graphics.FromImage(bmp)) {
+                            g.Clear(CreateCaretColor(color));
+                        }
+                        SetHandle(bmp.GetHbitmap());
+                    }
+                }
+            }
+
+            private static Color CreateCaretColor(Color color) {
+                int A = color.A;
+                int R = color.R ^ 0xff;
+                int G = color.G ^ 0xff;
+                int B = color.B ^ 0xff;
+                return Color.FromArgb(A, R, G, B);
+            }
+
+            public Color Color { get; }
+
+            public Size Size { get; }
+
+            public int Width {
+                get {
+                    return Size.Width;
+                }
+            }
+
+            public int Height {
+                get {
+                    return Size.Height;
+                }
+            }
+
+            protected override bool ReleaseHandle() {
+                bool ret = true;
+                if (handle != BLACK_HANDLE) {
+                    ret = NativeMethods.DeleteObject(new HandleRef(this, handle));
+                }
+                SetHandle(NativeMethods.INVALID_HANDLE_VALUE);
+                return ret;
+            }
+        }
     }
 }
