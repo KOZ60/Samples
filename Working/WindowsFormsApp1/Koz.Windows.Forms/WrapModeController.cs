@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class WrapModeController : NativeWindowBase<TextBoxBase>
+    public class WrapModeController : NativeWindowBase<Control>
     {
         public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
 
@@ -15,13 +15,12 @@ namespace Koz.Windows.Forms
         protected bool inMouseEvent = false;
         protected WrapMode wrapMode;
 
-        public WrapModeController(TextBoxBase textBox) : base(textBox) {
+        public WrapModeController(Control textBox) : base(textBox) {
             EditWordBreakDelegate = new EditWordBreakProc(EditWordBreak);
             this.WrapMode = WrapMode.NoWrap;
         }
 
-        protected override void OnHandleCreated(EventArgs e) {
-            base.OnHandleCreated(e);
+        public void Install() {
             NativeMethods.SendMessage(new HandleRef(this, Handle),
                     NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, EditWordBreakDelegate);
         }
@@ -32,17 +31,8 @@ namespace Koz.Windows.Forms
             }
             set {
                 wrapMode = value;
-                switch (value) {
-                    case WrapMode.NoWrap:
-                        Owner.WordWrap = false;
-                        break;
-                    default:
-                        Owner.WordWrap = true;
-                        break;
-                }
             }
         }
-
 
         protected override void WndProc(ref Message m) {
 
@@ -101,6 +91,9 @@ namespace Koz.Windows.Forms
                     }
 
                 case WordBreakCode.Left: {
+                        if (pos >= e.TextLength) {
+                            pos = e.TextLength - 1;
+                        }
                         char currentChar = text[pos];
                         CharType current = GetCharType(currentChar);
                         UnicodeCategory category = char.GetUnicodeCategory(currentChar);

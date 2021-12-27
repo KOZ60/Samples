@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class TextEditor : TextBox
+    public class TextEditor : Control
     {
         private const int INITIAL_MEMORY_SIZE = 32767;
         private readonly WrapModeController WrapModeController;
@@ -24,37 +24,105 @@ namespace Koz.Windows.Forms
             WrapModeController.WordBreak += WrapModeController_WordBreak;
 
             SetStyle(ControlStyles.ResizeRedraw, true);
-            base.ScrollBars = ScrollBars.Both;
-            base.WordWrap = false;
-            base.MaxLength = 0;
-            base.Multiline = true;  // 最後にしないと CreateHandle が走る
-            CanCreateHandle = true;
+            SetStyle(ControlStyles.StandardClick
+                            | ControlStyles.StandardDoubleClick
+                            | ControlStyles.UseTextForAccessibility
+                            | ControlStyles.UserPaint, false);
         }
 
-        protected bool CanCreateHandle { get; set; } = false;
+        protected override CreateParams CreateParams {
+            get {
+                CreateParams cp = base.CreateParams;
 
-        protected override void CreateHandle() {
-            if (CanCreateHandle) {
-                base.CreateHandle();
+                // TextBoxBase
+                cp.ClassName = "EDIT";
+                cp.Style |= NativeMethods.ES_AUTOHSCROLL | NativeMethods.ES_AUTOVSCROLL;
+                cp.ExStyle &= (~NativeMethods.WS_EX_CLIENTEDGE);
+                cp.Style &= (~NativeMethods.WS_BORDER);
+
+                //switch (borderStyle) {
+                //    case BorderStyle.Fixed3D:
+                //        cp.ExStyle |= NativeMethods.WS_EX_CLIENTEDGE;
+                //        break;
+                //    case BorderStyle.FixedSingle:
+                //        cp.Style |= NativeMethods.WS_BORDER;
+                //        break;
+                //}
+
+                cp.Style |= NativeMethods.ES_MULTILINE;
+                if (WrapMode != WrapMode.NoWrap) {
+                    cp.Style &= ~NativeMethods.ES_AUTOHSCROLL;
+                }
+
+                // TextBox
+                cp.ExStyle &= ~NativeMethods.WS_EX_RIGHT;
+                cp.Style |= NativeMethods.ES_LEFT;
+                if (WrapMode == WrapMode.NoWrap) {
+                    cp.Style |= NativeMethods.WS_HSCROLL;
+                }
+                cp.Style |= NativeMethods.WS_VSCROLL;
+
+                return cp;
             }
         }
 
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
-            ReAllocMemory(INITIAL_MEMORY_SIZE);
-            SetTabStop();
+            ReAllocMemory(Handle, 0);
+            InitializeHandle(Handle);
+            WrapModeController.Install();
         }
 
-        protected void ReAllocMemory(int nSizeNew) {
+        protected override void OnResize(EventArgs e) {
+            base.OnResize(e);
+            InitializeHandle(Handle);
+        }
 
-            IntPtr hMemOld = NativeMethods.SendMessage(new HandleRef(this, Handle),
-                                    NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
+        protected virtual void InitializeHandle(IntPtr handle) {
+            HandleRef hwnd = new HandleRef(this, handle);
+
+            // 長さを無制限に
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_LIMITTEXT, IntPtr.Zero, IntPtr.Zero);
+
+            // Tab 幅をセットする
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETTABSTOPS, (IntPtr)1, new int[] { TabWidth * 4 });
+
+            // 両端のマージンをゼロに
+            IntPtr wp = new IntPtr(NativeMethods.EC_LEFTMARGIN | NativeMethods.EC_RIGHTMARGIN);
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETMARGINS, wp, IntPtr.Zero);
+
+            // 右端を半角２文字分あける
+            var rect = new NativeMethods.RECT();
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
+            System.Diagnostics.Debug.Print("EM_GETRECT {0}", rect.Rectangle);
+
+            // 左右を半角２文字分空ける
+            Size avg = UTL.GetFontSizeAverage(Font);
+            var cs = ClientRectangle;
+            rect.left = ClientRectangle.Left + avg.Width;
+            rect.right = ClientRectangle.Right - avg.Width * 2;
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
+            System.Diagnostics.Debug.Print("EM_SETRECT {0}=>{1}", cs, rect.Rectangle);
+        }
+
+        protected virtual void ReAllocMemory(IntPtr handle, int stringLength) {
+            int nSizeNew = stringLength * 4;
+
+            if (nSizeNew < INITIAL_MEMORY_SIZE) {
+                nSizeNew = INITIAL_MEMORY_SIZE;
+            }
+
+            HandleRef hwnd = new HandleRef(this, handle);
+
+            IntPtr hMemOld = NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
 
             int nSizeOld = (int)NativeMethods.LocalSize(hMemOld);
-            if (nSizeNew < nSizeOld) {
-                return;
-            }
+            //if (nSizeNew < nSizeOld) {
+            //    return;
+            //}
+
             int flags = NativeMethods.LocalFlags(hMemOld);
+
             IntPtr hMemNew = NativeMethods.LocalAlloc(flags, new IntPtr(nSizeNew));
             if (hMemNew == IntPtr.Zero) {
                 return;
@@ -63,17 +131,19 @@ namespace Koz.Windows.Forms
             IntPtr ptrOld = NativeMethods.LocalLock(hMemOld);
             IntPtr ptrNew = NativeMethods.LocalLock(hMemNew);
 
-            NativeMethods.RtlMoveMemory(ptrNew, ptrOld, nSizeOld);
+            int copySize = Math.Min(nSizeOld, nSizeNew);
+            NativeMethods.RtlMoveMemory(ptrNew, ptrOld, copySize);
 
             NativeMethods.LocalUnlock(hMemOld);
             NativeMethods.LocalUnlock(hMemNew);
 
-            NativeMethods.SendMessage(new HandleRef(this, Handle),
-                                    NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
+            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
 
-            NativeMethods.LocalFree(hMemOld);
+            IntPtr result = NativeMethods.LocalFree(hMemOld);
+            if (result != IntPtr.Zero) {
+                throw new Win32Exception();
+            }
         }
-
 
         private void DrawController_OwnerDraw(object sender, PaintEventArgs e) {
             TextEditorRenderer.DrawClient(this, e);
@@ -83,8 +153,11 @@ namespace Koz.Windows.Forms
             OnWordBreak(e);
         }
 
+        int count = 0;
+
         protected override void WndProc(ref Message m) {
-            //System.Diagnostics.Debug.Print(m.ToString());
+            //System.Diagnostics.Debug.Print("+{0} {1}", new string('-', count), m);
+            count++;
             switch (m.Msg) {
 
                 case NativeMethods.EM_SETSEL:
@@ -106,15 +179,65 @@ namespace Koz.Windows.Forms
                     WmPaste(ref m);
                     break;
 
+                case NativeMethods.WM_SETFONT:
+                    WmSetFont(ref m);
+                    break;
+
+                case NativeMethods.WM_REFLECT + NativeMethods.WM_COMMAND:
+                    WmReflectCommand(ref m);
+                    break;
+
+                case NativeMethods.WM_GETDLGCODE:
+                    WmGetDlgCode(ref m);
+                    break;
+
+                case NativeMethods.WM_SIZE:
+                    base.WndProc(ref m);
+                    InitializeHandle(m.HWnd);
+                    break;
+
+                case NativeMethods.WM_SETTEXT:
+                    ReAllocMemory(m.HWnd, NativeMethods.lstrlenW(m.LParam));
+                    base.WndProc(ref m);
+                    break;
+
                 default:
                     base.WndProc(ref m);
                     // マウス操作があったら Invalidate
-                    if (m.Msg >= NativeMethods.WM_MOUSEFIRST && 
+                    if (m.Msg >= NativeMethods.WM_MOUSEFIRST &&
                         m.Msg <= NativeMethods.WM_MOUSELAST) {
                         Invalidate();
                     }
                     break;
             }
+            count--;
+            //System.Diagnostics.Debug.Print(" {0} {1}", new string('-', count), m);
+        }
+
+        private void WmReflectCommand(ref Message m) {
+            switch (UTL.HIWORD(m.Msg)) {
+                case NativeMethods.EN_CHANGE:
+                    base.WndProc(ref m);
+                    OnTextChanged(EventArgs.Empty);
+                    break;
+
+                case NativeMethods.EN_UPDATE:
+                    base.WndProc(ref m);
+                    break;
+
+                case NativeMethods.EN_ERRSPACE:
+                    base.WndProc(ref m);
+                    break;
+
+                default:
+                    base.WndProc(ref m);
+                    break;
+            }
+        }
+
+        private void WmGetDlgCode(ref Message m) {
+            base.WndProc(ref m);
+            m.Result = (IntPtr)(unchecked((int)(long)m.Result) | NativeMethods.DLGC_WANTTAB);
         }
 
         // 描画ロックして Invalidate
@@ -140,6 +263,23 @@ namespace Koz.Windows.Forms
             }
         }
 
+        // キャレットの上下１行をクリップする
+        private Rectangle GetCaretClip() {
+            NativeMethods.GetCaretPos(out NativeMethods.POINTL pt);
+            int currentLine = GetLineFromPosition(new Point(pt.x, pt.y));
+
+            int startLine = currentLine > 0 ? currentLine - 1 : currentLine;
+            Point startPt = GetFirstCharPositionFromLine(startLine);
+
+            int lastIndex = GetLineCount() - 1;
+            int endLine = currentLine + 1 > lastIndex ? lastIndex : currentLine + 1;
+            Point endPt = GetFirstCharPositionFromLine(endLine);
+
+            int top = startPt.Y;
+            int bottom = endPt.Y + UTL.GetFontSizeAverage(this.Font).Height;
+            return Rectangle.FromLTRB(ClientRectangle.Left, top, ClientRectangle.Right, bottom);
+        }
+
         private void WmChar(ref Message m) {
             if (Focused) {
                 Rectangle clip = GetCaretClip();
@@ -158,37 +298,149 @@ namespace Koz.Windows.Forms
         private void WmPaste(ref Message m) {
             if (Clipboard.ContainsText()) {
                 string str = Clipboard.GetText();
-                int byteLen = (str.Length + TextLength) * 3;
-                ReAllocMemory(byteLen);
+                int textLength = TextLength;
+                ReAllocMemory(m.HWnd, str.Length + textLength);
                 Paste(str);
             }
         }
 
-        // キャレットの上下１行をクリップする
-        private Rectangle GetCaretClip() {
-            NativeMethods.GetCaretPos(out NativeMethods.POINTL pt);
-            int currentLine = GetLineFromPosition(new Point(pt.x, pt.y));
-
-            int startLine = currentLine > 0 ? currentLine - 1 : currentLine;
-            Point startPt = GetFirstCharPositionFromLine(startLine);
-
-            int lastIndex = GetLineCount() - 1;
-            int endLine = currentLine + 1 > lastIndex ? lastIndex : currentLine + 1;
-            Point endPt = GetFirstCharPositionFromLine(endLine);
-
-            int top = startPt.Y;
-            int bottom = endPt.Y + UTL.GetFontSizeAverage(this.Font).Height;
-            return Rectangle.FromLTRB(ClientRectangle.Left, top, ClientRectangle.Right, bottom);
+        private void WmSetFont(ref Message m) {
+            base.WndProc(ref m);
+            InitializeHandle(m.HWnd);
         }
 
-        public int GetLineCount() {
-            return (int)NativeMethods.SendMessage(new HandleRef(this, Handle),
-                                NativeMethods.EM_GETLINECOUNT, IntPtr.Zero, IntPtr.Zero);
+        public virtual int TextLength {
+            get {
+                if (IsHandleCreated && Marshal.SystemDefaultCharSize == 2) {
+                    return NativeMethods.GetWindowTextLength(new HandleRef(this, Handle));
+                } else {
+                    return Text.Length;
+                }
+            }
         }
 
-        public int GetLineFromPosition(Point pt) {
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
+            bool returnValue = base.ProcessCmdKey(ref msg, keyData);
+            if (keyData == (Keys.Control | Keys.A)) {
+                SelectAll();
+                return true;
+            }
+            return returnValue;
+        }
+
+        public void SelectAll() {
+            int textLen = TextLength;
+            Select(0, textLen);
+        }
+
+        public void Select(int start, int length) {
+            if (IsHandleCreated) {
+                int end = start + length;
+                SendMessage(NativeMethods.EM_SETSEL, (IntPtr)start, (IntPtr)end);
+            }
+        }
+
+        protected virtual void SetSelectedTextInternal(string text, bool clearUndo) {
+            if (!IsHandleCreated) {
+                CreateHandle();
+            }
+
+            if (text == null) {
+                text = "";
+            }
+
+            if (clearUndo) {
+                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(0), text);
+                SendMessage(NativeMethods.EM_SETMODIFY);
+                ClearUndo();
+            } else {
+                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(-1), text);
+            }
+        }
+
+        public void ClearUndo() {
+            if (IsHandleCreated) {
+                SendMessage(NativeMethods.EM_EMPTYUNDOBUFFER);
+            }
+        }
+
+        public void Cut() {
+            SendMessage(NativeMethods.WM_CUT);
+        }
+
+        public void Copy() {
+            SendMessage(NativeMethods.WM_COPY);
+        }
+
+        public void Paste() {
+            SendMessage(NativeMethods.WM_PASTE);
+        }
+
+        public void Paste(string text) {
+            SetSelectedTextInternal(text, false);
+        }
+
+        protected IntPtr SendMessage(int msg) {
+            return SendMessage(msg, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        protected IntPtr SendMessage(int msg, int wParam) {
+            return SendMessage(msg, new IntPtr(wParam), IntPtr.Zero);
+        }
+
+        protected IntPtr SendMessage(int msg, IntPtr wParam, IntPtr lParam) {
+            return NativeMethods.SendMessage(
+                            new HandleRef(this, Handle),
+                            msg, wParam, lParam);
+        }
+
+        protected IntPtr SendMessage(int msg, IntPtr wParam, string lParam) {
+            return NativeMethods.SendMessage(
+                            new HandleRef(this, Handle),
+                            msg, wParam, lParam);
+        }
+
+        protected int SendMessageInt(int msg) {
+            return SendMessageInt(msg, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        protected int SendMessageInt(int msg, int wParam) {
+            return SendMessageInt(msg, new IntPtr(wParam), IntPtr.Zero);
+        }
+
+        protected int SendMessageInt(int msg, IntPtr wParam, IntPtr lParam) {
+            return unchecked((int)(long)SendMessage(msg, wParam, lParam));
+        }
+
+        protected int SendMessageInt(int msg, IntPtr wParam, string lParam) {
+            return unchecked((int)(long)SendMessage(msg, wParam, lParam));
+        }
+
+        public virtual int GetLineCount() {
+            return SendMessageInt(NativeMethods.EM_GETLINECOUNT);
+        }
+
+        public virtual int GetFirstVisibleLine() {
+            return SendMessageInt(NativeMethods.EM_GETFIRSTVISIBLELINE);
+        }
+
+
+        public virtual int GetLineLength(int lineIndex) {
+            int charIndex = GetFirstCharIndexFromLine(lineIndex);
+            return SendMessageInt(NativeMethods.EM_LINELENGTH, charIndex);
+        }
+
+        public virtual int GetFirstCharIndexFromLine(int lineIndex) {
+            return SendMessageInt(NativeMethods.EM_LINEINDEX, lineIndex);
+        }
+
+        public virtual int GetLineFromPosition(Point pt) {
             int charIndex = GetCharIndexFromPosition(pt);
             return GetLineFromCharIndex(charIndex);
+        }
+
+        public virtual int GetLineFromCharIndex(int charIndex) {
+            return SendMessageInt(NativeMethods.EM_LINEFROMCHAR, charIndex);
         }
 
         public Point GetFirstCharPositionFromLine(int lineIndex) {
@@ -196,11 +448,17 @@ namespace Koz.Windows.Forms
             return GetPositionFromCharIndex(charIndex);
         }
 
-        public override int GetCharIndexFromPosition(Point pt) {
+        public virtual Point GetPositionFromCharIndex(int charIndex) {
+            IntPtr pt = SendMessage(NativeMethods.EM_POSFROMCHAR, charIndex);
+            if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
+                return UTL.InvalidPoint;
+            }
+            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
+        }
+
+        public virtual int GetCharIndexFromPosition(Point pt) {
             int longPoint = UTL.MAKELONG(pt.X, pt.Y);
-            IntPtr index = NativeMethods.SendMessage(new HandleRef(this, Handle),
-                                        NativeMethods.EM_CHARFROMPOS, IntPtr.Zero, new IntPtr(longPoint));
-            return UTL.LOWORD(index);
+            return SendMessageInt(NativeMethods.EM_CHARFROMPOS, IntPtr.Zero, new IntPtr(longPoint));
         }
 
         public virtual void Refresh(Rectangle clip) {
@@ -212,7 +470,7 @@ namespace Koz.Windows.Forms
             get {
                 return base.Text;
             }
-            set { 
+            set {
                 if (base.Text != value) {
                     base.Text = value;
                     if (IsHandleCreated) {
@@ -220,34 +478,6 @@ namespace Koz.Windows.Forms
                     }
                 }
             }
-        }
-
-        protected override void OnFontChanged(EventArgs e) {
-            base.OnFontChanged(e);
-            SetTabStop();
-        }
-
-        // Tab 幅をセットする
-        protected void SetTabStop() {
-            if (IsHandleCreated) {
-                NativeMethods.SendMessage(new HandleRef(this, Handle),
-                        NativeMethods.EM_SETTABSTOPS, (IntPtr)1, new int[] { TabWidth * 4 });
-                Invalidate();
-            }
-        }
-
-        protected override void OnResize(EventArgs e) {
-            base.OnResize(e);
-            SetRightMargin();
-        }
-
-        // 右端を半角２文字分あける
-        protected virtual void SetRightMargin() {
-            Size avg = UTL.GetFontSizeAverage(Font);
-            var rect = new NativeMethods.RECT();
-            NativeMethods.SendMessage(new HandleRef(this, Handle), NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
-            rect.right = ClientRectangle.Right - avg.Width * 2;
-            NativeMethods.SendMessage(new HandleRef(this, Handle), NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
         }
 
         // -------------------------------------------------------------------------------
@@ -266,38 +496,6 @@ namespace Koz.Windows.Forms
             public const string CannotChangeProperty = "プロパティを変更できません";
         }
 
-        [Browsable(false)]
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete(ObsoleteMessage.CannotChangeProperty)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public new bool Multiline { get; set; }
-
-        [Browsable(false)]
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete(ObsoleteMessage.CannotChangeProperty)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public new bool WordWrap { get; set; }
-
-        [DefaultValue(0)]
-        public override int MaxLength {
-            get {
-                return base.MaxLength;
-            }
-            set {
-                base.MaxLength = value;
-            }
-        }
-
-        [DefaultValue(ScrollBars.Both)]
-        public new ScrollBars ScrollBars {
-            get {
-                return base.ScrollBars;
-            }
-            set {
-                base.ScrollBars = value;
-            }
-        }
-
         private Color _BackColor = Color.Empty;
 
         public override Color BackColor {
@@ -310,6 +508,12 @@ namespace Koz.Windows.Forms
             set {
                 base.BackColor = value;
                 _BackColor = value;
+            }
+        }
+
+        protected override Cursor DefaultCursor {
+            get {
+                return Cursors.IBeam;
             }
         }
 
@@ -451,7 +655,7 @@ namespace Koz.Windows.Forms
                 if (TabWidth != value) {
                     _TabWidth = value;
                     if (IsHandleCreated) {
-                        SetTabStop();
+                        InitializeHandle(Handle);
                     }
                     OnTabWidthChanged(EventArgs.Empty);
                 }
@@ -500,6 +704,7 @@ namespace Koz.Windows.Forms
                     WrapModeController.WrapMode = value;
                     if (IsHandleCreated) {
                         RecreateHandle();
+                        Invalidate();
                     }
                     OnWrapModeChanged(EventArgs.Empty);
                 }

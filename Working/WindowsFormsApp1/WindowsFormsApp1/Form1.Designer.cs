@@ -81,7 +81,6 @@ namespace WindowsFormsApp1
             this.Name = "Form1";
             this.Text = "Form1";
             this.splitContainer1.Panel1.ResumeLayout(false);
-            this.splitContainer1.Panel1.PerformLayout();
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);

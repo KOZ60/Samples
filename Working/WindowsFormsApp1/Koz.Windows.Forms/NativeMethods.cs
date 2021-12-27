@@ -22,20 +22,77 @@ namespace Koz.Windows.Forms
         public static IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
         public const int
+            WM_NULL = 0x0000,
+            WM_CREATE = 0x0001,
+            WM_DESTROY = 0x0002,
+            WM_NCDESTROY = WM_DESTROY,
+            WM_MOVE = 0x0003,
+            WM_SIZE = 0x0005,
+            WM_ACTIVATE = 0x0006,
             WM_SETFOCUS = 0x0007,
             WM_KILLFOCUS = 0x0008,
+            WM_ENABLE = 0x000A,
+            WM_SETREDRAW = 0x000B,
             WM_SETTEXT = 0x000C,
+            WM_GETTEXT = 0x000D,
+            WM_GETTEXTLENGTH = 0x000E,
             WM_PAINT = 0x000F,
-            WM_KEYDOWN = 0x0100,
-            WM_CHAR = 0x0102,
+            WM_CLOSE = 0x0010,
+            WM_QUIT = 0x0012,
             WM_ERASEBKGND = 0x0014,
-            WM_PASTE = 0x0302,
-            WM_PRINTCLIENT = 0x0318,
+            WM_SHOWWINDOW = 0x0018,
+            WM_CTLCOLOR = 0x0019,
+            WM_NEXTDLGCTL = 0x0028,
+            WM_DRAWITEM = 0x002B,
+            WM_MEASUREITEM = 0x002C,
+            WM_DELETEITEM = 0x002D,
+            WM_VKEYTOITEM = 0x002E,
+            WM_CHARTOITEM = 0x002F,
+            WM_SETFONT = 0x0030,
+            WM_GETFONT = 0x0031,
+            WM_COMPAREITEM = 0x0039,
+            WM_WINDOWPOSCHANGED = 0x0047,
+            WM_NOTIFY = 0x004E,
+            WM_NCCALCSIZE = 0x0083,
+            WM_NCHITTEST = 0x0084,
+            WM_NCPAINT = 0x0085,
+            WM_GETDLGCODE = 0x0087,
+            WM_NCMOUSEMOVE = 0x00A0,
+            WM_NCLBUTTONDOWN = 0x00A1,
+            WM_NCLBUTTONUP = 0x00A2,
+            WM_NCLBUTTONDBLCLK = 0x00A3,
+            WM_NCRBUTTONDOWN = 0x00A4,
+            WM_NCRBUTTONUP = 0x00A5,
+            WM_NCRBUTTONDBLCLK = 0x00A6;
+
+        public const int
+            WM_KEYFIRST = 0x0100,
+            WM_KEYDOWN = 0x0100,
+            WM_KEYUP = 0x0101,
+            WM_CHAR = 0x0102,
+            WM_DEADCHAR = 0x0103,
+            WM_SYSKEYDOWN = 0x0104,
+            WM_SYSKEYUP = 0x0105,
+            WM_SYSCHAR = 0x0106,
+            WM_SYSDEADCHAR = 0x0107,
+            WM_KEYLAST = 0x0108;
+
+        public const int
+            WM_INITDIALOG = 0x0110,
+            WM_COMMAND = 0x0111,
+            WM_SYSCOMMAND = 0x0112,
+            WM_TIMER = 0x0113,
             WM_HSCROLL = 0x0114,
-            WM_VSCROLL = 0x0115,
-            WM_NCDESTROY = 0x0082,
-            WM_USER = 0x0400,
-            WM_REFLECT = WM_USER + 0x1C00;
+            WM_VSCROLL = 0x0115;
+
+        public const int
+            WM_CTLCOLORMSGBOX = 0x0132,
+            WM_CTLCOLOREDIT = 0x0133,
+            WM_CTLCOLORLISTBOX = 0x0134,
+            WM_CTLCOLORBTN = 0x0135,
+            WM_CTLCOLORDLG = 0x0136,
+            WM_CTLCOLORSCROLLBAR = 0x0137,
+            WM_CTLCOLORSTATIC = 0x0138;
 
         public const int
             WM_MOUSEFIRST = 0x0200,
@@ -56,14 +113,40 @@ namespace Koz.Windows.Forms
             WM_MOUSELAST = 0x020A;
 
         public const int
-            WM_CTLCOLOR = 0x0019,
-            WM_CTLCOLORMSGBOX = 0x0132,
-            WM_CTLCOLOREDIT = 0x0133,
-            WM_CTLCOLORLISTBOX = 0x0134,
-            WM_CTLCOLORBTN = 0x0135,
-            WM_CTLCOLORDLG = 0x0136,
-            WM_CTLCOLORSCROLLBAR = 0x0137,
-            WM_CTLCOLORSTATIC = 0x0138;
+            WM_CUT = 0x0300,
+            WM_COPY = 0x0301,
+            WM_PASTE = 0x0302,
+            WM_CLEAR = 0x0303,
+            WM_UNDO = 0x0304;
+
+        public const int
+            WM_PRINT = 0x0317,
+            WM_PRINTCLIENT = 0x0318,
+            WM_APPCOMMAND = 0x0319,
+            WM_USER = 0x0400,
+            WM_APP = 0x8000,
+            WM_REFLECT = WM_USER + 0x1C00;
+
+        public const int
+            WS_BORDER = 0x00800000,
+            WS_VSCROLL = 0x00200000,
+            WS_HSCROLL = 0x00100000,
+            WS_EX_DLGMODALFRAME = 0x00000001,
+            WS_EX_MDICHILD = 0x00000040,
+            WS_EX_TOOLWINDOW = 0x00000080,
+            WS_EX_CLIENTEDGE = 0x00000200,
+            WS_EX_CONTEXTHELP = 0x00000400,
+            WS_EX_RIGHT = 0x00001000,
+            WS_EX_LEFT = 0x00000000,
+            WS_EX_RTLREADING = 0x00002000,
+            WS_EX_LEFTSCROLLBAR = 0x00004000,
+            WS_EX_CONTROLPARENT = 0x00010000,
+            WS_EX_STATICEDGE = 0x00020000,
+            WS_EX_APPWINDOW = 0x00040000,
+            WS_EX_LAYERED = 0x00080000,
+            WS_EX_TOPMOST = 0x00000008,
+            WS_EX_LAYOUTRTL = 0x00400000,
+            WS_EX_NOINHERITLAYOUT = 0x00100000;
 
         public const int
             EM_GETSEL = 0x00B0,
@@ -106,6 +189,19 @@ namespace Koz.Windows.Forms
             EM_SETIMESTATUS = 0x00D8,
             EM_GETIMESTATUS = 0x00D9;
 
+        // Edit 通知メッセージ
+        public const int
+            EN_SETFOCUS = 0x0100,
+            EN_KILLFOCUS = 0x0200,
+            EN_CHANGE = 0x0300,
+            EN_UPDATE = 0x0400,
+            EN_ERRSPACE = 0x0500,
+            EN_MAXTEXT = 0x0501,
+            EN_HSCROLL = 0x0601,
+            EN_VSCROLL = 0x0602,
+            EN_ALIGN_LTR_EC = 0x0700,
+            EN_ALIGN_RTL_EC = 0x0701;
+
         public const int
             ES_LEFT = 0x0000,
             ES_CENTER = 0x0001,
@@ -123,7 +219,15 @@ namespace Koz.Windows.Forms
             EC_LEFTMARGIN = 0x0001,
             EC_RIGHTMARGIN = 0x0002,
             EC_USEFONTINFO = 0xffff;
-       
+
+        public const int
+            DLGC_WANTARROWS = 0x0001,
+            DLGC_WANTTAB = 0x0002,
+            DLGC_WANTALLKEYS = 0x0004,
+            DLGC_WANTCHARS = 0x0080,
+            DLGC_WANTMESSAGE = 0x0004, 
+            DLGC_HASSETSEL = 0x0008;
+
         public const int
             SBM_SETPOS = 0x00E0,
             SBM_GETPOS = 0x00E1,
@@ -145,6 +249,9 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessage(HandleRef hWnd, int Msg, IntPtr wParam, string lParam);
 
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int Msg, out int wParam, out int lParam);
@@ -475,11 +582,19 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.Kernel32)]
         public static extern bool LocalUnlock(IntPtr hMem);
 
-        [DllImport(ExternDll.Kernel32)]
+        [DllImport(ExternDll.Kernel32, SetLastError = true)]
         public static extern IntPtr LocalFree(IntPtr hMem);
 
         [DllImport(ExternDll.Kernel32)]
         public static extern void RtlMoveMemory(IntPtr dest, IntPtr src, int size);
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern void RtlMoveMemory(byte[] dest, IntPtr src, int size);
+
+
+        [DllImport(ExternDll.Kernel32)]
+        public static extern int lstrlenW(IntPtr lpString);
+
 
     }
 }

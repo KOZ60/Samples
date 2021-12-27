@@ -21,18 +21,17 @@ namespace Koz.Windows.Forms
                         editor.ShowMarker, editor.MarkerColor, editor.TabWidth);
         }
 
-        public static void DrawClient(TextBoxBase editor, Graphics graphics, Rectangle clip,
+        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip,
                                         bool showMarker, Color markerColor, int tabWidth) {
             DrawClient(editor, graphics, clip, editor.Text, showMarker, markerColor, tabWidth);
         }
 
-        public static void DrawClient(TextBoxBase editor, Graphics graphics,
+        public static void DrawClient(TextEditor editor, Graphics graphics,
                             Rectangle clip, string text,
                             bool showMarker, Color markerColor, int tabWidth) {
             TextEditorRenderer renderer = new TextEditorRenderer(editor);
             renderer.DrawClient(graphics, clip, text, showMarker, markerColor, tabWidth);
         }
-
 
         private const char DISPLAY_WIDE_SPACE = '\u2610';
         private const char DISPLAY_HALF_SPACE = '_';
@@ -53,14 +52,14 @@ namespace Koz.Windows.Forms
         // Instance
         // -------------------------------------------------------------------------------
 
-        private Control owner;
+        private TextEditor owner;
         private SelectionRange selectionRange;
         private DrawColors drawColors;
         private Size fontSizeAverage;
         private bool showMarker;
         private int tabWidth;
 
-        private TextEditorRenderer(TextBoxBase editor) {
+        private TextEditorRenderer(TextEditor editor) {
             this.owner = editor;
         }
 
@@ -80,29 +79,65 @@ namespace Koz.Windows.Forms
             fontSizeAverage = UTL.GetFontSizeAverageFromHdc(hdc);
 
             try {
-                int lineCount = (int)SendMessage(NativeMethods.EM_GETLINECOUNT);
-                int startLine = (int)SendMessage(NativeMethods.EM_GETFIRSTVISIBLELINE); 
+                int startLine = owner.GetFirstVisibleLine();
+                int lineCount = owner.GetLineCount();
                 int bottom = clip.Bottom;
+                //Point rb = new Point(clip.Right, clip.Bottom);
+                //int rbIndex = owner.GetCharIndexFromPosition(rb);
+                Rectangle cr = owner.ClientRectangle;
+                int endLine = startLine;
+                for (int i = startLine; i < lineCount; i++) {
+                    // 行の最初の文字位置を取得
+                    int lineStart = owner.GetFirstCharIndexFromLine(i);
+                    if (lineStart == -1) {
+                        break;
+                    }
+                    // 行の最初の文字の座標を取得
+                    Point pt = owner.GetPositionFromCharIndex(lineStart);
+                    if (pt.IsInvalid()) {
+                        break;
+                    }
+                    if (pt.Y > bottom) {
+                        break;
+                    }
+                    endLine = i;
+                }
+
+                System.Diagnostics.Debug.Print("{0} ～ {1} を描画！！！", startLine, endLine); ;
 
                 for (int i = startLine; i < lineCount; i++) {
 
-                    int lineStart = GetFirstCharIndexFromLine(i); 
+                    // 行の最初の文字位置を取得
+                    int lineStart = owner.GetFirstCharIndexFromLine(i); 
                     if (lineStart == -1) {
                         break;
                     }
 
-                    Point pt = GetPositionFromCharIndex(lineStart);
+                    // 行の最初の文字の座標を取得
+                    Point pt = owner.GetPositionFromCharIndex(lineStart);
                     if (pt.IsInvalid()) {
-                        continue;
+                        break;
                     }
                     if (pt.Y > bottom) {
                         break;
                     }
 
-                    int lineEnd = text.IndexOf('\r', lineStart);
-                    if (lineEnd == -1) {
-                        lineEnd = text.Length - 1;
+                    // 行の長さを取得(改行が含まれない)
+                    int lineLength = owner.GetLineLength(i); 
+                    int lineEnd = lineStart + lineLength - 1;
+
+                    // 次の文字が改行で同一行なら含める
+                    int checkCharIndex = lineEnd + 1;
+                    if (checkCharIndex < text.Length && text[checkCharIndex] == '\r') {
+                        int checkLineIndex = owner.GetLineFromCharIndex(checkCharIndex);
+                        if (checkLineIndex == i) {
+                            lineEnd = checkCharIndex;
+                        }
                     }
+
+
+
+
 
                     Range drawRange = new Range(lineStart, lineEnd);
                     if (drawRange.Length > 0) {
@@ -127,7 +162,7 @@ namespace Koz.Windows.Forms
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
                         DrawPart(hdc, prevMode.Value, pt, sb);
                         sb.Clear();
-                        pt = GetPositionFromCharIndex(pos);
+                        pt = owner.GetPositionFromCharIndex(pos);
                     }
                 }
                 sb.Append(c);
@@ -171,7 +206,7 @@ namespace Koz.Windows.Forms
         }
 
         private void DrawTabHighlight(HandleRef hdc, Point pt) {
-            Point minPt = GetPositionFromCharIndex(0);
+            Point minPt = owner.GetPositionFromCharIndex(0);
             int X = pt.X - minPt.X;
             int tabPixelWidth = fontSizeAverage.Width * tabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
@@ -282,18 +317,6 @@ namespace Koz.Windows.Forms
             get {
                 return (WindowStyle & NativeMethods.ES_NOHIDESEL) == 0;
             }
-        }
-
-        protected virtual int GetFirstCharIndexFromLine(int lineNumber) {
-            return unchecked((int)(long)SendMessage(NativeMethods.EM_LINEINDEX, new IntPtr(lineNumber), IntPtr.Zero));
-        }
-
-        protected virtual Point GetPositionFromCharIndex(int index) {
-            IntPtr pt = SendMessage(NativeMethods.EM_POSFROMCHAR, new IntPtr(index), IntPtr.Zero);
-            if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
-                return UTL.InvalidPoint;
-            }
-            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
         }
     }
 }
