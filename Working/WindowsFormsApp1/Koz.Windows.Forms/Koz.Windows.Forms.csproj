@@ -46,7 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackColorKeeper.cs" />
+    <Compile Include="CaretBitmap.cs" />
     <Compile Include="CaretController.cs" />
+    <Compile Include="FontHandleWrapper.cs" />
     <Compile Include="GraphicsWrapper.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NativeWindowBase.cs" />

@@ -32,7 +32,6 @@ namespace WindowsFormsApp1
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.textEditor1 = new Koz.Windows.Forms.TextEditor();
             this.propertyGrid1 = new Koz.Windows.Forms.PropertyGridEx();
-            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -47,7 +46,6 @@ namespace WindowsFormsApp1
             // 
             // splitContainer1.Panel1
             // 
-            this.splitContainer1.Panel1.Controls.Add(this.button1);
             this.splitContainer1.Panel1.Controls.Add(this.textEditor1);
             // 
             // splitContainer1.Panel2
@@ -60,10 +58,11 @@ namespace WindowsFormsApp1
             // textEditor1
             // 
             this.textEditor1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textEditor1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.textEditor1.Font = new System.Drawing.Font("ＭＳ ゴシック", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.textEditor1.Location = new System.Drawing.Point(109, 26);
+            this.textEditor1.Location = new System.Drawing.Point(0, 0);
             this.textEditor1.Name = "textEditor1";
-            this.textEditor1.Size = new System.Drawing.Size(377, 305);
+            this.textEditor1.Size = new System.Drawing.Size(569, 513);
             this.textEditor1.TabIndex = 0;
             this.textEditor1.Text = "textEditor1";
             // 
@@ -74,16 +73,6 @@ namespace WindowsFormsApp1
             this.propertyGrid1.Name = "propertyGrid1";
             this.propertyGrid1.Size = new System.Drawing.Size(210, 513);
             this.propertyGrid1.TabIndex = 0;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(100, 395);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(163, 38);
-            this.button1.TabIndex = 1;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // Form1
             // 
@@ -106,7 +95,6 @@ namespace WindowsFormsApp1
         private System.Windows.Forms.SplitContainer splitContainer1;
         private Koz.Windows.Forms. PropertyGridEx propertyGrid1;
         private Koz.Windows.Forms.TextEditor textEditor1;
-        private System.Windows.Forms.Button button1;
     }
 }
 

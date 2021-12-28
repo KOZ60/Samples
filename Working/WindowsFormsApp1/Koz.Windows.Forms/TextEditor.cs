@@ -22,24 +22,30 @@ namespace Koz.Windows.Forms
         }
 
         private readonly WrapModeController WrapModeController;
-        private readonly OwnerDrawController OwnerDrawController;
-        private readonly CaretController CaretController;
 
         public TextEditor() {
 
-            OwnerDrawController = new OwnerDrawController(this);
             WrapModeController = new WrapModeController(this);
-            CaretController = new CaretController(this);
             this.WrapMode = WrapModeController.DefaultWrapMode;
 
-            OwnerDrawController.OwnerDraw += DrawController_OwnerDraw;
             WrapModeController.WordBreak += WrapModeController_WordBreak;
 
             SetStyle(ControlStyles.StandardClick
                             | ControlStyles.StandardDoubleClick
-                            | ControlStyles.UseTextForAccessibility
-                            | ControlStyles.UserPaint, false);
-            SetStyle(ControlStyles.ResizeRedraw, true);
+                            | ControlStyles.UseTextForAccessibility, false);
+
+            SetStyle(ControlStyles.ResizeRedraw
+                            | ControlStyles.UserPaint
+                            | ControlStyles.OptimizedDoubleBuffer
+                            | ControlStyles.AllPaintingInWmPaint, true);
+
+        }
+
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+            if (fontHandleWrapper != null) {
+                fontHandleWrapper.Dispose();
+            }
         }
 
         protected override CreateParams CreateParams {
@@ -73,21 +79,15 @@ namespace Koz.Windows.Forms
                     cp.Style |= NativeMethods.WS_HSCROLL;
                 }
                 cp.Style |= NativeMethods.WS_VSCROLL;
-
+ 
                 return cp;
-            }
-        }
-
-        internal bool IsDesignMode {
-            get {
-                return base.DesignMode;
             }
         }
 
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
             ReAllocMemory(0, false);
-            InitializeHandle(Handle);
+            SetWindowFont();
             WrapModeController.Install();
         }
 
@@ -113,11 +113,10 @@ namespace Koz.Windows.Forms
             var rect = new NativeMethods.RECT();
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
 
-            // 左右を半角２文字分空ける
-            Size avg = UTL.GetFontSizeAverage(Font);
+            // 右を半角２文字分空ける(↓を表示するため)
+            Size avg = FontAverageSize;
             var cs = ClientRectangle;
-            rect.left = ClientRectangle.Left + avg.Width;
-            rect.right = ClientRectangle.Right - avg.Width * 2;
+            rect.right = cs.Right - avg.Width * 2;
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
         }
 
@@ -164,12 +163,71 @@ namespace Koz.Windows.Forms
             SetSelect(selectStart, selectEnd);
         }
 
-        private void DrawController_OwnerDraw(object sender, PaintEventArgs e) {
+        protected override void OnPaint(PaintEventArgs e) {
             TextEditorRenderer.DrawClient(this, e);
+            base.OnPaint(e);
         }
 
         private void WrapModeController_WordBreak(object sender, WordBreakEventArgs e) {
             OnWordBreak(e);
+        }
+
+        private FontHandleWrapper fontHandleWrapper;
+
+        public FontHandleWrapper FontHandleWrapper {
+            get {
+                if (fontHandleWrapper == null) {
+                    fontHandleWrapper = new FontHandleWrapper(Font);
+                } else if (!fontHandleWrapper.IsEquals(Font)) {
+                    fontHandleWrapper.Dispose();
+                    fontHandleWrapper = new FontHandleWrapper(Font);
+                }
+                return fontHandleWrapper;
+            }
+        }
+
+        public Size FontAverageSize {
+            get {
+                return FontHandleWrapper.AverageSize;
+            }
+        }
+
+        protected void SetWindowFont() {
+            SendMessage(NativeMethods.WM_SETFONT, FontHandleWrapper.Handle, IntPtr.Zero);
+        }
+
+        protected override void OnFontChanged(EventArgs e) {
+            if (IsHandleCreated) {
+                SetWindowFont();
+                if (Focused) {
+                    ShowCaret();
+                }
+            }
+            base.OnFontChanged(e);
+        }
+
+        CaretBitmap caretBitmap;
+
+        protected CaretBitmap CaretBitmap {
+            get {
+                Color caretColor = _CaretColor;
+                Size caretSize = new Size(CaretWidth, FontAverageSize.Height);
+                if (caretBitmap == null) {
+                    caretBitmap = new CaretBitmap(caretColor, caretSize);
+                } else if (caretBitmap.Color != caretColor || caretBitmap.Size != caretSize) {
+                    caretBitmap.Dispose();
+                    caretBitmap = new CaretBitmap(caretColor, caretSize);
+                }
+                return caretBitmap;
+            }
+        }
+
+        protected virtual void ShowCaret() {
+            if (DesignMode) return;
+            HandleRef hwnd = new HandleRef(this, Handle);
+            NativeMethods.DestroyCaret();
+            NativeMethods.CreateCaret(hwnd, CaretBitmap, CaretBitmap.Width, CaretBitmap.Height);
+            NativeMethods.ShowCaret(hwnd);
         }
 
         //int count = 0;
@@ -186,6 +244,10 @@ namespace Koz.Windows.Forms
                 case NativeMethods.WM_LBUTTONDBLCLK:
                 case NativeMethods.WM_SETTEXT:
                     WndProcWithLock(ref m);
+                    break;
+
+                case NativeMethods.WM_SETFOCUS:
+                    WmSetFocus(ref m);
                     break;
 
                 case NativeMethods.WM_KEYDOWN:
@@ -228,6 +290,11 @@ namespace Koz.Windows.Forms
             }
             //count--;
             //System.Diagnostics.Debug.Print(" {0} {1}", new string('-', count), m);
+        }
+
+        private void WmSetFocus(ref Message m) {
+            base.WndProc(ref m);
+            ShowCaret();
         }
 
         private void WmReflectCommand(ref Message m) {
@@ -298,7 +365,7 @@ namespace Koz.Windows.Forms
             Point endPt = GetFirstCharPositionFromLine(endLine);
 
             int top = startPt.Y;
-            int bottom = endPt.Y + UTL.GetFontSizeAverage(this.Font).Height;
+            int bottom = endPt.Y + FontAverageSize.Height;
             return Rectangle.FromLTRB(ClientRectangle.Left, top, ClientRectangle.Right, bottom);
         }
 
@@ -314,7 +381,12 @@ namespace Koz.Windows.Forms
                 UTL.LockWindow(Handle);
                 base.WndProc(ref m);
                 UTL.UnlockWindow();
-                Refresh(clip);
+                char c = (char)m.WParam.ToInt32();
+                if (TextEditorRenderer.Markers.TryGetValue(c, out char _)) {
+                    Refresh(clip);
+                } else {
+                    Invalidate(clip);
+                }
             }
         }
 
@@ -372,9 +444,7 @@ namespace Koz.Windows.Forms
         }
 
         public void ClearUndo() {
-            if (IsHandleCreated) {
-                SendMessage(NativeMethods.EM_EMPTYUNDOBUFFER);
-            }
+            SendMessage(NativeMethods.EM_EMPTYUNDOBUFFER);
         }
 
         public void Cut() {
@@ -404,7 +474,7 @@ namespace Koz.Windows.Forms
             }
 
             if (clearUndo) {
-                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(0), text);
+                SendMessage(NativeMethods.EM_REPLACESEL, IntPtr.Zero, text);
                 SendMessage(NativeMethods.EM_SETMODIFY);
                 ClearUndo();
             } else {
@@ -455,7 +525,6 @@ namespace Koz.Windows.Forms
         public virtual int GetFirstVisibleLine() {
             return SendMessageInt(NativeMethods.EM_GETFIRSTVISIBLELINE);
         }
-
 
         public virtual int GetLineLength(int lineIndex) {
             int charIndex = GetFirstCharIndexFromLine(lineIndex);
@@ -755,22 +824,23 @@ namespace Koz.Windows.Forms
         // CaretWidth プロパティ
         // -------------------------------------------------------------------------------
         private static readonly object EventCaretWidthChanged = new object();
+        private int _CaretWidth = 2;
 
         /// <summary>
         /// キャレットの幅を取得または設定します。
         /// </summary>
         [Description("キャレットの幅を取得または設定します。")]
         [Category(Category.Caret)]
-        [DefaultValue(1)]
+        [DefaultValue(2)]
         public int CaretWidth {
             get {
-                return CaretController.CaretWidth;
+                return _CaretWidth;
             }
             set {
-                if (CaretController.CaretWidth != value) {
-                    CaretController.CaretWidth = value;
+                if (_CaretWidth != value) {
+                    _CaretWidth = value;
                     if (IsHandleCreated && Focused) {
-                        CaretController.ShowCaret();
+                        ShowCaret();
                     }
                     OnCaretWidthChanged(EventArgs.Empty);
                 }
@@ -803,6 +873,8 @@ namespace Koz.Windows.Forms
         // CaretColor プロパティ
         // -------------------------------------------------------------------------------
         private object EventCaretColorChanged = new object();
+        private Color DefaultCaretColor = Color.Black;
+        private Color _CaretColor = Color.Empty;
 
         /// <summary>
         /// キャレットの幅を取得または設定します。
@@ -811,16 +883,16 @@ namespace Koz.Windows.Forms
         [Category(Category.Caret)]
         public Color CaretColor {
             get {
-                if (CaretController.CaretColor.IsEmpty) {
-                    return CaretController.DefaultCaretColor;
+                if (_CaretColor.IsEmpty) {
+                    return DefaultCaretColor;
                 }
-                return CaretController.CaretColor;
+                return _CaretColor;
             }
             set {
-                if (CaretController.CaretColor != value) {
-                    CaretController.CaretColor = value;
+                if (_CaretColor != value) {
+                    _CaretColor = value;
                     if (IsHandleCreated && Focused) {
-                        CaretController.ShowCaret();
+                        ShowCaret();
                     }
                     OnCaretColorChanged(EventArgs.Empty);
                 }
@@ -853,14 +925,14 @@ namespace Koz.Windows.Forms
         /// CaretColor の値を既定値に設定します。
         /// </summary>
         internal void ResetCaretColor() {
-            CaretController.CaretColor = Color.Empty;
+            CaretColor = Color.Empty;
         }
 
         /// <summary>
         /// CaretColor の値が変更されているかを取得します。
         /// </summary>
         internal bool ShouldSerializeCaretColor() {
-            return !CaretController.CaretColor.IsEmpty;
+            return !_CaretColor.IsEmpty;
         }
 
         // -------------------------------------------------------------------------------

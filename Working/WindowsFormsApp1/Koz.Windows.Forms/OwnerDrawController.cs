@@ -9,6 +9,9 @@ using System.Drawing;
 
 namespace Koz.Windows.Forms
 {
+    /// <summary>
+    /// オーナードロー制御(不要になりました。)
+    /// </summary>
     public class OwnerDrawController : NativeWindowBase<Control>
     {
         public event PaintEventHandler OwnerDraw;

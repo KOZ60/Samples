@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class CaretController : NativeWindowBase<TextEditor>
+    public class CaretController : NativeWindowBase<Control>
     {
         public static Color DefaultCaretColor = Color.Black;
         public const int DefaultCaretWidth = 1;
@@ -51,11 +51,10 @@ namespace Koz.Windows.Forms
 
         public void ShowCaret() {
 
-            if (Owner.IsDesignMode) return;
+            if (UTL.IsDesignMode) return;
             if (IsDefault) return;
 
-            NativeMethods.DestroyCaret();
-            Size avg = UTL.GetFontSizeAverage(Owner.Font);
+            Size avg = UTL.GetFontAverageSize(Owner.Font);
             Size caretSize = new Size(CaretWidth, avg.Height);
             if (caretBitmap == null) {
                 caretBitmap = new CaretBitmap(CaretColor, caretSize);
@@ -64,6 +63,7 @@ namespace Koz.Windows.Forms
                 caretBitmap = new CaretBitmap(CaretColor, caretSize);
             }
             HandleRef hwnd = new HandleRef(this, Owner.Handle);
+            NativeMethods.DestroyCaret();
             NativeMethods.CreateCaret(hwnd, caretBitmap, caretBitmap.Width, caretBitmap.Height);
             NativeMethods.ShowCaret(hwnd);
         }

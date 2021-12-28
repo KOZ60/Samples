@@ -22,11 +22,7 @@ namespace WindowsFormsApp1
             base.OnShown(e);
             propertyGrid1.SelectedObject = textEditor1;
             propertyGrid1.GotoTop();
-
         }
 
-        private void button1_Click(object sender, EventArgs e) {
-            textEditor1.Text = "TEST!!!!";
-        }
     }
 }

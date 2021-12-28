@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -10,21 +11,10 @@ namespace Koz.Windows.Forms
     public static class UTL {
 
         // フォントサイズの平均値を取得
-        public static Size GetFontSizeAverage(Font font) {
-            HandleRef hdc = new HandleRef(null, NativeMethods.GetDC(new HandleRef(null, IntPtr.Zero)));
-            HandleRef hFont = new HandleRef(null, font.ToHfont());
-            HandleRef oldFont = new HandleRef(null, NativeMethods.SelectObject(hdc, hFont));
-            Size result = GetFontSizeAverageFromHdc(hdc);
-            NativeMethods.SelectObject(hdc, oldFont);
-            NativeMethods.DeleteObject(hFont);
-            NativeMethods.DeleteDC(hFont);
-            return result;
-        }
-
-        // フォントが選択済みのデバイスコンテキストハンドルよりフォントサイズの平均値を取得
-        public static Size GetFontSizeAverageFromHdc(HandleRef hdc) {
-            NativeMethods.GetTextMetricsW(hdc, out NativeMethods.TEXTMETRICW tmNative);
-            return new Size(tmNative.tmAveCharWidth, tmNative.tmHeight);
+        public static Size GetFontAverageSize(Font font) {
+            using (var wrapper = new GraphicsWrapper(font)) {
+                return wrapper.GetFontAverageSize();
+            }
         }
 
         public static Rectangle DeflateRect(Rectangle rect, Padding padding) {
@@ -35,6 +25,12 @@ namespace Koz.Windows.Forms
             return rect;
         }
  
+        public static bool IsDesignMode {
+            get {
+                return Assembly.GetEntryAssembly() == null;
+            }
+        }
+
         [ThreadStatic]
         private static int lockCount = 0;
 

@@ -19,7 +19,7 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         [ThreadStatic]
         private static Dictionary<char, char> markers;
-        private static Dictionary<char, char> Markers {
+        internal static Dictionary<char, char> Markers {
             get {
                 if (markers == null) {
                     markers = new Dictionary<char, char>();
@@ -103,70 +103,68 @@ namespace Koz.Windows.Forms
         protected unsafe virtual void DrawText(Graphics graphics, Rectangle clip, char* text) {
 
             if (text == null) return;
-            int textLength = NativeMethods.lstrlenW(text);
+            int textLength = NativeMethods.lstrlen(text);
             if (textLength == 0) return;
 
-            HandleRef hdc = new HandleRef(this, graphics.GetHdc());
-            HandleRef hFont = new HandleRef(this, owner.Font.ToHfont());
-            HandleRef oldFont = new HandleRef(this, NativeMethods.SelectObject(hdc, hFont));
-            fontSizeAverage = UTL.GetFontSizeAverageFromHdc(hdc);
+            using (var wrapper = new GraphicsWrapper(graphics.GetHdc(), owner.Font)) {
 
-            try {
-                int startLine = owner.GetFirstVisibleLine();
-                int lineCount = owner.GetLineCount();
-                int bottom = clip.Bottom;
-                Rectangle cr = owner.ClientRectangle;
+                fontSizeAverage = wrapper.GetFontAverageSize();
 
-                int endLine = startLine;
+                try {
+                    int startLine = owner.GetFirstVisibleLine();
+                    int lineCount = owner.GetLineCount();
+                    int bottom = clip.Bottom;
+                    Rectangle cr = owner.ClientRectangle;
 
-                var lst = new List<DrawRange>();
+                    int endLine = startLine;
 
-                for (int i = startLine; i < lineCount; i++) {
-                    // 行の最初の文字位置を取得
-                    int lineStart = owner.GetFirstCharIndexFromLine(i);
-                    if (lineStart == -1) {
-                        break;
-                    }
-                    // 行の最初の文字の座標を取得
-                    Point pt = owner.GetPositionFromCharIndex(lineStart);
-                    if (pt.IsInvalid() || pt.Y > bottom) {
-                        break;
-                    }
+                    var lst = new List<DrawRange>();
 
-                    // 行の長さを取得(改行が含まれない)
-                    int lineLength = owner.GetLineLength(i);
-                    int lineEnd = lineStart + lineLength - 1;
-
-                    // 次の文字が改行で同一行なら含める
-                    int checkCharIndex = lineEnd + 1;
-                    if (checkCharIndex < textLength && text[checkCharIndex] == '\r') {
-                        int checkLineIndex = owner.GetLineFromCharIndex(checkCharIndex);
-                        if (checkLineIndex == i) {
-                            lineEnd = checkCharIndex;
+                    for (int i = startLine; i < lineCount; i++) {
+                        // 行の最初の文字位置を取得
+                        int lineStart = owner.GetFirstCharIndexFromLine(i);
+                        if (lineStart == -1) {
+                            break;
                         }
+                        // 行の最初の文字の座標を取得
+                        Point pt = owner.GetPositionFromCharIndex(lineStart);
+                        if (pt.IsInvalid() || pt.Y > bottom) {
+                            break;
+                        }
+
+                        // 行の長さを取得(改行が含まれない)
+                        int lineLength = owner.GetLineLength(i);
+                        int lineEnd = lineStart + lineLength - 1;
+
+                        // 次の文字が改行で同一行なら含める
+                        int checkCharIndex = lineEnd + 1;
+                        if (checkCharIndex < textLength && text[checkCharIndex] == '\r') {
+                            int checkLineIndex = owner.GetLineFromCharIndex(checkCharIndex);
+                            if (checkLineIndex == i) {
+                                lineEnd = checkCharIndex;
+                            }
+                        }
+
+                        DrawRange drawRange = new DrawRange(pt, lineStart, lineEnd);
+                        if (drawRange.Length > 0) {
+                            lst.Add(drawRange);
+                        }
+                        endLine = i;
                     }
 
-                    DrawRange drawRange = new DrawRange(pt, lineStart, lineEnd);
-                    if (drawRange.Length > 0) {
-                        lst.Add(drawRange);
+                    //System.Diagnostics.Debug.Print("{0} {1} ～ {2} を描画", DateTime.Now, startLine, endLine); ;
+
+                    for (int i = 0; i < lst.Count; i++) {
+                        DrawLine(wrapper, lst[i], text);
                     }
-                    endLine = i;
+
+                } finally {
+                    graphics.ReleaseHdc();
                 }
-
-                //System.Diagnostics.Debug.Print("{0} {1} ～ {2} を描画", DateTime.Now, startLine, endLine); ;
-
-                for (int i = 0; i < lst.Count; i++) {
-                    DrawLine(hdc, lst[i], text);
-                }
-
-            } finally {
-                NativeMethods.SelectObject(hdc, oldFont);
-                NativeMethods.DeleteObject(hFont);
-                graphics.ReleaseHdc();
             }
         }
 
-        private unsafe void DrawLine(HandleRef hdc, DrawRange drawRange, char* text) {
+        private unsafe void DrawLine(GraphicsWrapper wrapper, DrawRange drawRange, char* text) {
             Point pt = drawRange.Location;
             DrawMode? prevMode = null;
             var sb = new StringBuilder(drawRange.Length * 2);
@@ -175,7 +173,7 @@ namespace Koz.Windows.Forms
                 DrawMode mode = GetDrawMode(pos, ref c);
                 if (prevMode.HasValue) {
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
-                        DrawPart(hdc, prevMode.Value, pt, sb);
+                        DrawPart(wrapper, prevMode.Value, pt, sb);
                         sb.Clear();
                         pt = owner.GetPositionFromCharIndex(pos);
                     }
@@ -184,7 +182,7 @@ namespace Koz.Windows.Forms
                 prevMode = mode;
             }
             if (sb.Length > 0) {
-                DrawPart(hdc, prevMode.Value, pt, sb);
+                DrawPart(wrapper, prevMode.Value, pt, sb);
             }
         }
 
@@ -206,27 +204,27 @@ namespace Koz.Windows.Forms
             return mode;
         }
 
-        private void DrawPart(HandleRef hdc, DrawMode mode, Point pt, StringBuilder sb) {
+        private void DrawPart(GraphicsWrapper wrapper, DrawMode mode, Point pt, StringBuilder sb) {
             DrawColor drawColor = drawColors[mode];
-            NativeMethods.SetTextColor(hdc, drawColor.Win32ForeColor);
-            NativeMethods.SetBkColor(hdc, drawColor.Win32BackColor);
+            wrapper.SetColor(drawColor.Win32ForeColor, drawColor.Win32BackColor);
+
             if (mode.HasFlag(DrawMode.Tab)) {
                 if (mode.HasFlag(DrawMode.Highlight)) {
-                    DrawTabHighlight(hdc, pt);
+                    DrawTabHighlight(wrapper, pt);
                 }
-                NativeMethods.TextOut(hdc, pt.X + 3, pt.Y, sb, sb.Length);
+                wrapper.TextOut(pt.X + 3, pt.Y,  sb);
             } else {
-                NativeMethods.TextOut(hdc, pt.X, pt.Y, sb, sb.Length);
+                wrapper.TextOut(pt.X, pt.Y, sb);
             }
         }
 
-        private void DrawTabHighlight(HandleRef hdc, Point pt) {
+        private void DrawTabHighlight(GraphicsWrapper wrapper, Point pt) {
             Point minPt = owner.GetPositionFromCharIndex(0);
             int X = pt.X - minPt.X;
             int tabPixelWidth = fontSizeAverage.Width * owner.TabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
             var rect = new Rectangle(pt, new Size(width, fontSizeAverage.Height));
-            using (var g = Graphics.FromHdcInternal(hdc.Handle)) {
+            using (var g = Graphics.FromHdcInternal(wrapper.GetHdc())) {
                 g.FillRectangle(SystemBrushes.Highlight, rect);
             }
         }
@@ -330,7 +328,8 @@ namespace Koz.Windows.Forms
 
         protected int WindowStyle {
             get {
-                return unchecked((int)(long)NativeMethods.GetWindowLong(new HandleRef(this, owner.Handle), NativeMethods.GWL_STYLE));
+                return unchecked((int)(long)NativeMethods.GetWindowLong(
+                    new HandleRef(this, owner.Handle), NativeMethods.GWL_STYLE));
             }
         }
 

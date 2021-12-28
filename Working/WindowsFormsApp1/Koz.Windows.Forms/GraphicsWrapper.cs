@@ -1,41 +1,57 @@
 ﻿using System;
-using System.Text;
-using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using System.Text;
 
 namespace Koz.Windows.Forms
 {
     public class GraphicsWrapper : IDisposable
     {
-        private Graphics graphics;
-        private HandleRef hwnd;
         private HandleRef hdc;
-        private HandleRef hFont;
+        private HandleRef fontHandle;
+        private bool needDeleteHdc;
+        private bool needDeleteFont;
         private HandleRef oldFont;
 
-        public GraphicsWrapper(Graphics graphics, Font font) {
-            this.graphics = graphics;
-            Initialize(graphics.GetHdc(), font);
+        public GraphicsWrapper(Font font) : this(font.ToHfont(), true) { }
+
+        public GraphicsWrapper(IntPtr fontHandle, bool needDeleteFont) {
+            IntPtr hdc = NativeMethods.CreateCompatibleDC(new HandleRef(this, IntPtr.Zero));
+            Initialize(hdc, true, fontHandle, needDeleteFont);
         }
 
-        public GraphicsWrapper(IntPtr hwnd, Font font) {
-            this.graphics = null;
-            this.hwnd = new HandleRef(this, hwnd);
-            Initialize(NativeMethods.GetDC(this.hwnd), font);
+        public GraphicsWrapper(IntPtr hdc, Font font)  {
+            Initialize(hdc, false, font.ToHfont(), true);
         }
 
-        private void Initialize(IntPtr dc, Font font) {
-            this.hdc = new HandleRef(this, dc);
-            this.hFont = new HandleRef(this, font.ToHfont());
-            this.oldFont = new HandleRef(this, NativeMethods.SelectObject(hdc, hFont));
+        public GraphicsWrapper(IntPtr hdc, bool needDeleteHdc, IntPtr fontHandle, bool needDeleteFont) {
+            Initialize(hdc, needDeleteHdc, fontHandle, needDeleteFont);
         }
 
-        public void SetFont(Font font) {
-            hFont = new HandleRef(this, font.ToHfont());
-            HandleRef prevFont = new HandleRef(this, NativeMethods.SelectObject(hdc, hFont));
-            NativeMethods.DeleteObject(prevFont);
+        private void Initialize(IntPtr hdc, bool needDeleteHdc, IntPtr fontHandle, bool needDeleteFont) {
+            this.hdc = new HandleRef(this, hdc);
+            this.needDeleteHdc = needDeleteHdc;
+            this.fontHandle = new HandleRef(this, fontHandle);
+            this.needDeleteFont = needDeleteFont;
+            this.oldFont = new HandleRef(this, NativeMethods.SelectObject(this.hdc, this.fontHandle));
+        }
+
+        public void ChangeFont(Font font) {
+            fontHandle = new HandleRef(this, font.ToHfont());
+            HandleRef prevFont = new HandleRef(this, NativeMethods.SelectObject(hdc, fontHandle));
+            if (needDeleteFont) {
+                NativeMethods.DeleteObject(prevFont);
+            }
+            needDeleteFont = true;
+        }
+
+        public IntPtr GetHdc() {
+            return hdc.Handle;
+        }
+
+        public Size GetFontAverageSize() {
+            NativeMethods.GetTextMetricsW(hdc, out NativeMethods.TEXTMETRICW tmNative);
+            return new Size(tmNative.tmAveCharWidth, tmNative.tmHeight);
         }
 
         public void SetColor(Color foreColor, Color backColor) {
@@ -67,11 +83,10 @@ namespace Koz.Windows.Forms
             if (disposedValue) return;
             disposedValue = true;
             NativeMethods.SelectObject(hdc, oldFont);
-            NativeMethods.DeleteObject(hFont);
-            if (graphics != null) {
-                graphics.ReleaseHdc();
-            } else {
-                NativeMethods.ReleaseDC(hwnd, hdc);
+            if (needDeleteFont) {
+                NativeMethods.DeleteObject(fontHandle);
+            }
+            if (needDeleteHdc) {
                 NativeMethods.DeleteDC(hdc);
             }
         }

@@ -470,6 +470,9 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.User32)]
         public static extern IntPtr GetDC(HandleRef hWnd);
 
+        [DllImport(ExternDll.Gdi32)]
+        public static extern IntPtr CreateCompatibleDC(HandleRef hDC);
+
         [DllImport(ExternDll.User32)]
         public static extern bool ReleaseDC(HandleRef hWnd, HandleRef hDC);
 
@@ -613,7 +616,7 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.Kernel32)]
         public static extern int lstrlenW(IntPtr lpString);
 
-        [DllImport(ExternDll.Kernel32)]
-        public unsafe static extern int lstrlenW(char* lpString);
+        [DllImport(ExternDll.Kernel32, CharSet = CharSet.Auto)]
+        public unsafe static extern int lstrlen(char* lpString);
     }
 }
