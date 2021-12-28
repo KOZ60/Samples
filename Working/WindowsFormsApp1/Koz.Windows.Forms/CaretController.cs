@@ -6,12 +6,12 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class CaretController : NativeWindowBase<Control>
+    public class CaretController : NativeWindowBase<TextEditor>
     {
         public static Color DefaultCaretColor = Color.Black;
         public const int DefaultCaretWidth = 1;
 
-        public CaretController(Control owner) : base(owner) { }
+        public CaretController(TextEditor owner) : base(owner) { }
 
         protected override void WndProc(ref Message m) {
             switch (m.Msg) {
@@ -51,6 +51,7 @@ namespace Koz.Windows.Forms
 
         public void ShowCaret() {
 
+            if (Owner.IsDesignMode) return;
             if (IsDefault) return;
 
             NativeMethods.DestroyCaret();

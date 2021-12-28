@@ -247,6 +247,21 @@ namespace Koz.Windows.Forms
             GWL_EXSTYLE = (-20),
             GWL_ID = (-12);
 
+        [Flags]
+        public enum Keystroke : int
+        {
+            KF_EXTENDED = 0x0100,
+            KF_DLGMODE = 0x0800,
+            KF_MENUMODE = 0x1000,
+            KF_ALTDOWN = 0x2000,
+            KF_REPEAT = 0x4000,
+            KF_UP = 0x8000
+        }
+
+        public static Keystroke GetKeystroke(ref Message m) {
+            return (Keystroke)(int)m.LParam.ToInt64();
+        }
+
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 
@@ -379,6 +394,9 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.Gdi32, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool TextOut(HandleRef hdc, int nXStart, int nYStart, ref char lpString, int cbString);
+
+        [DllImport(ExternDll.Gdi32, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool TextOut(HandleRef hdc, int nXStart, int nYStart, string lpString, int cbString);
 
         [DllImport(ExternDll.Gdi32, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool TextOut(HandleRef hdc, int nXStart, int nYStart, StringBuilder lpString, int cbString);
@@ -595,6 +613,7 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.Kernel32)]
         public static extern int lstrlenW(IntPtr lpString);
 
-
+        [DllImport(ExternDll.Kernel32)]
+        public unsafe static extern int lstrlenW(char* lpString);
     }
 }

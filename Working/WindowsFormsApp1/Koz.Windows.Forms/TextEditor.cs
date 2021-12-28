@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -9,6 +10,17 @@ namespace Koz.Windows.Forms
     public class TextEditor : Control
     {
         private const int INITIAL_MEMORY_SIZE = 32767;
+
+        private static class MessageText
+        {
+            public const string EN_ERRSPACE = "重大なエラー：メモリを割り当てることができません。";
+        }
+
+        private static class MessageTitle
+        {
+            public const string ERROR = "エラー";
+        }
+
         private readonly WrapModeController WrapModeController;
         private readonly OwnerDrawController OwnerDrawController;
         private readonly CaretController CaretController;
@@ -23,11 +35,11 @@ namespace Koz.Windows.Forms
             OwnerDrawController.OwnerDraw += DrawController_OwnerDraw;
             WrapModeController.WordBreak += WrapModeController_WordBreak;
 
-            SetStyle(ControlStyles.ResizeRedraw, true);
             SetStyle(ControlStyles.StandardClick
                             | ControlStyles.StandardDoubleClick
                             | ControlStyles.UseTextForAccessibility
                             | ControlStyles.UserPaint, false);
+            SetStyle(ControlStyles.ResizeRedraw, true);
         }
 
         protected override CreateParams CreateParams {
@@ -40,14 +52,14 @@ namespace Koz.Windows.Forms
                 cp.ExStyle &= (~NativeMethods.WS_EX_CLIENTEDGE);
                 cp.Style &= (~NativeMethods.WS_BORDER);
 
-                //switch (borderStyle) {
-                //    case BorderStyle.Fixed3D:
-                //        cp.ExStyle |= NativeMethods.WS_EX_CLIENTEDGE;
-                //        break;
-                //    case BorderStyle.FixedSingle:
-                //        cp.Style |= NativeMethods.WS_BORDER;
-                //        break;
-                //}
+                switch (BorderStyle) {
+                    case BorderStyle.Fixed3D:
+                        cp.ExStyle |= NativeMethods.WS_EX_CLIENTEDGE;
+                        break;
+                    case BorderStyle.FixedSingle:
+                        cp.Style |= NativeMethods.WS_BORDER;
+                        break;
+                }
 
                 cp.Style |= NativeMethods.ES_MULTILINE;
                 if (WrapMode != WrapMode.NoWrap) {
@@ -66,9 +78,15 @@ namespace Koz.Windows.Forms
             }
         }
 
+        internal bool IsDesignMode {
+            get {
+                return base.DesignMode;
+            }
+        }
+
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
-            ReAllocMemory(Handle, 0);
+            ReAllocMemory(0, false);
             InitializeHandle(Handle);
             WrapModeController.Install();
         }
@@ -94,7 +112,6 @@ namespace Koz.Windows.Forms
             // 右端を半角２文字分あける
             var rect = new NativeMethods.RECT();
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
-            System.Diagnostics.Debug.Print("EM_GETRECT {0}", rect.Rectangle);
 
             // 左右を半角２文字分空ける
             Size avg = UTL.GetFontSizeAverage(Font);
@@ -102,24 +119,26 @@ namespace Koz.Windows.Forms
             rect.left = ClientRectangle.Left + avg.Width;
             rect.right = ClientRectangle.Right - avg.Width * 2;
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
-            System.Diagnostics.Debug.Print("EM_SETRECT {0}=>{1}", cs, rect.Rectangle);
         }
 
-        protected virtual void ReAllocMemory(IntPtr handle, int stringLength) {
+        protected virtual void ReAllocMemory(int stringLength, bool force) {
             int nSizeNew = stringLength * 4;
 
             if (nSizeNew < INITIAL_MEMORY_SIZE) {
                 nSizeNew = INITIAL_MEMORY_SIZE;
             }
 
-            HandleRef hwnd = new HandleRef(this, handle);
+            HandleRef hwnd = new HandleRef(this, Handle);
 
             IntPtr hMemOld = NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
 
             int nSizeOld = (int)NativeMethods.LocalSize(hMemOld);
-            //if (nSizeNew < nSizeOld) {
-            //    return;
-            //}
+            if (!force && nSizeNew < nSizeOld) {
+                return;
+            }
+
+            // メモリ差し替えの前に選択状態を取得
+            GetSelect(out int selectStart, out int selectEnd);
 
             int flags = NativeMethods.LocalFlags(hMemOld);
 
@@ -139,10 +158,10 @@ namespace Koz.Windows.Forms
 
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
 
-            IntPtr result = NativeMethods.LocalFree(hMemOld);
-            if (result != IntPtr.Zero) {
-                throw new Win32Exception();
-            }
+            NativeMethods.LocalFree(hMemOld);
+
+            // 選択状態を戻す
+            SetSelect(selectStart, selectEnd);
         }
 
         private void DrawController_OwnerDraw(object sender, PaintEventArgs e) {
@@ -153,17 +172,19 @@ namespace Koz.Windows.Forms
             OnWordBreak(e);
         }
 
-        int count = 0;
+        //int count = 0;
 
         protected override void WndProc(ref Message m) {
             //System.Diagnostics.Debug.Print("+{0} {1}", new string('-', count), m);
-            count++;
+            //count++;
+
             switch (m.Msg) {
 
                 case NativeMethods.EM_SETSEL:
                 case NativeMethods.WM_HSCROLL:
                 case NativeMethods.WM_VSCROLL:
                 case NativeMethods.WM_LBUTTONDBLCLK:
+                case NativeMethods.WM_SETTEXT:
                     WndProcWithLock(ref m);
                     break;
 
@@ -196,11 +217,6 @@ namespace Koz.Windows.Forms
                     InitializeHandle(m.HWnd);
                     break;
 
-                case NativeMethods.WM_SETTEXT:
-                    ReAllocMemory(m.HWnd, NativeMethods.lstrlenW(m.LParam));
-                    base.WndProc(ref m);
-                    break;
-
                 default:
                     base.WndProc(ref m);
                     // マウス操作があったら Invalidate
@@ -210,27 +226,28 @@ namespace Koz.Windows.Forms
                     }
                     break;
             }
-            count--;
+            //count--;
             //System.Diagnostics.Debug.Print(" {0} {1}", new string('-', count), m);
         }
 
         private void WmReflectCommand(ref Message m) {
-            switch (UTL.HIWORD(m.Msg)) {
+            switch (UTL.HIWORD(m.WParam)) {
+
                 case NativeMethods.EN_CHANGE:
-                    base.WndProc(ref m);
                     OnTextChanged(EventArgs.Empty);
                     break;
 
                 case NativeMethods.EN_UPDATE:
-                    base.WndProc(ref m);
                     break;
 
                 case NativeMethods.EN_ERRSPACE:
-                    base.WndProc(ref m);
+                    MessageBox.Show(MessageText.EN_ERRSPACE,
+                                    MessageTitle.ERROR,
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
                     break;
 
                 default:
-                    base.WndProc(ref m);
                     break;
             }
         }
@@ -245,21 +262,26 @@ namespace Koz.Windows.Forms
             UTL.LockWindow(Handle);
             base.WndProc(ref m);
             UTL.UnlockWindow();
-            Invalidate();
+            Invalidate(true);
         }
 
         private void WmKeyDown(ref Message m) {
-            long KeyStateMask = 0x40000000;
-            bool isRepeat = (m.LParam.ToInt64() & KeyStateMask) == KeyStateMask;
-            var clip = GetCaretClip();
+            Rectangle clip = GetCaretClip();
+            GetSelect(out int start, out int end);
+            
             UTL.LockWindow(Handle);
             base.WndProc(ref m);
             UTL.UnlockWindow();
-            // リピート中は Refresh そうでなければ Invalidate
-            if (isRepeat) {
-                Refresh(clip);
-            } else {
+
+            if (end - start > 0) {
                 Invalidate();
+            } else {
+                NativeMethods.Keystroke keystroke = NativeMethods.GetKeystroke(ref m);
+                if (keystroke.HasFlag(NativeMethods.Keystroke.KF_REPEAT)) {
+                    Refresh(clip);
+                } else {
+                    Invalidate(clip, true);
+                }
             }
         }
 
@@ -281,25 +303,24 @@ namespace Koz.Windows.Forms
         }
 
         private void WmChar(ref Message m) {
-            if (Focused) {
-                Rectangle clip = GetCaretClip();
-                HandleRef hwnd = new HandleRef(this, Handle);
-                NativeMethods.HideCaret(hwnd);
+            GetSelect(out int start, out int end);
+            if (end - start > 0) {
                 UTL.LockWindow(Handle);
                 base.WndProc(ref m);
                 UTL.UnlockWindow();
-                Invalidate(clip, true);
-                NativeMethods.ShowCaret(hwnd);
+                Invalidate();
             } else {
+                Rectangle clip = GetCaretClip();
+                UTL.LockWindow(Handle);
                 base.WndProc(ref m);
+                UTL.UnlockWindow();
+                Refresh(clip);
             }
         }
 
         private void WmPaste(ref Message m) {
             if (Clipboard.ContainsText()) {
                 string str = Clipboard.GetText();
-                int textLength = TextLength;
-                ReAllocMemory(m.HWnd, str.Length + textLength);
                 Paste(str);
             }
         }
@@ -329,33 +350,25 @@ namespace Koz.Windows.Forms
         }
 
         public void SelectAll() {
-            int textLen = TextLength;
-            Select(0, textLen);
+            Select(0, TextLength);
         }
 
         public void Select(int start, int length) {
             if (IsHandleCreated) {
                 int end = start + length;
-                SendMessage(NativeMethods.EM_SETSEL, (IntPtr)start, (IntPtr)end);
+                SetSelect(start, end);
             }
         }
 
-        protected virtual void SetSelectedTextInternal(string text, bool clearUndo) {
-            if (!IsHandleCreated) {
-                CreateHandle();
-            }
+        internal void SetSelect(int start, int end) {
+            SendMessage(NativeMethods.EM_SETSEL, (IntPtr)start, (IntPtr)end);
+        }
 
-            if (text == null) {
-                text = "";
-            }
-
-            if (clearUndo) {
-                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(0), text);
-                SendMessage(NativeMethods.EM_SETMODIFY);
-                ClearUndo();
-            } else {
-                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(-1), text);
-            }
+        internal void GetSelect(out int start, out int end) {
+            NativeMethods.SendMessage(
+                             new HandleRef(this, Handle),
+                             NativeMethods.EM_GETSEL,
+                             out start, out end);
         }
 
         public void ClearUndo() {
@@ -376,8 +389,27 @@ namespace Koz.Windows.Forms
             SendMessage(NativeMethods.WM_PASTE);
         }
 
+        public void Undo() {
+            SendMessage(NativeMethods.EM_UNDO);
+        }
+
         public void Paste(string text) {
             SetSelectedTextInternal(text, false);
+        }
+
+        protected virtual void SetSelectedTextInternal(string text, bool clearUndo) {
+
+            if (text == null) {
+                text = "";
+            }
+
+            if (clearUndo) {
+                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(0), text);
+                SendMessage(NativeMethods.EM_SETMODIFY);
+                ClearUndo();
+            } else {
+                SendMessage(NativeMethods.EM_REPLACESEL, new IntPtr(-1), text);
+            }
         }
 
         protected IntPtr SendMessage(int msg) {
@@ -464,20 +496,6 @@ namespace Koz.Windows.Forms
         public virtual void Refresh(Rectangle clip) {
             Invalidate(clip, true);
             Update();
-        }
-
-        public override string Text {
-            get {
-                return base.Text;
-            }
-            set {
-                if (base.Text != value) {
-                    base.Text = value;
-                    if (IsHandleCreated) {
-                        Invalidate();
-                    }
-                }
-            }
         }
 
         // -------------------------------------------------------------------------------
@@ -869,6 +887,56 @@ namespace Koz.Windows.Forms
             }
             remove {
                 Events.RemoveHandler(EventWordBreak, value);
+            }
+        }
+
+        // -------------------------------------------------------------------------------
+        // BorderStyle プロパティ
+        // -------------------------------------------------------------------------------
+        private object EventBorderStyle = new object();
+        private BorderStyle _BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+
+        /// <summary>
+        /// コントロールの罫線の表示方法を取得または設定します。
+        /// </summary>
+        [Description("コントロールの罫線の表示方法を取得または設定します。")]
+        [Category("TextBox")]
+        [DefaultValue(System.Windows.Forms.BorderStyle.Fixed3D)]
+        public BorderStyle BorderStyle {
+            get {
+                return _BorderStyle;
+            }
+            set {
+                if (_BorderStyle != value) {
+                    _BorderStyle = value;
+                    if (IsHandleCreated) {
+                        RecreateHandle();
+                    }
+                    OnBorderStyleChanged(EventArgs.Empty);
+                }
+            }
+        }
+
+        /// <summary>
+        /// BorderStyleChanged イベントを発生させます。
+        /// </summary>
+        protected virtual void OnBorderStyleChanged(EventArgs e) {
+            var eh = Events[EventCaretColorChanged] as EventHandler;
+            if (eh != null) {
+                eh(this, e);
+            }
+
+        }
+
+        /// <summary>
+        /// BorderStyle プロパティの値が変更された場合に発生します。
+        /// </summary>
+        public event EventHandler BorderStyleChanged {
+            add {
+                Events.AddHandler(EventBorderStyle, value);
+            }
+            remove {
+                Events.RemoveHandler(EventBorderStyle, value);
             }
         }
     }

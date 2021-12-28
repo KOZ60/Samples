@@ -9,43 +9,45 @@ namespace Koz.Windows.Forms
 {
     public class TextEditorRenderer
     {
-        // -------------------------------------------------------------------------------
-        // Static
-        // -------------------------------------------------------------------------------
-        public static void DrawClient(TextEditor editor, PaintEventArgs e) {
-            DrawClient(editor, e.Graphics, e.ClipRectangle);
-        }
-
-        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip) {
-            DrawClient(editor, graphics, clip, 
-                        editor.ShowMarker, editor.MarkerColor, editor.TabWidth);
-        }
-
-        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip,
-                                        bool showMarker, Color markerColor, int tabWidth) {
-            DrawClient(editor, graphics, clip, editor.Text, showMarker, markerColor, tabWidth);
-        }
-
-        public static void DrawClient(TextEditor editor, Graphics graphics,
-                            Rectangle clip, string text,
-                            bool showMarker, Color markerColor, int tabWidth) {
-            TextEditorRenderer renderer = new TextEditorRenderer(editor);
-            renderer.DrawClient(graphics, clip, text, showMarker, markerColor, tabWidth);
-        }
-
         private const char DISPLAY_WIDE_SPACE = '\u2610';
         private const char DISPLAY_HALF_SPACE = '_';
         private const char DISPLAY_NEWLINE = '↓';
         private const char DISPLAY_TAB = '\u0350';
 
-        private static readonly Dictionary<char, char> markerChars;
+        // -------------------------------------------------------------------------------
+        // Static
+        // -------------------------------------------------------------------------------
+        [ThreadStatic]
+        private static Dictionary<char, char> markers;
+        private static Dictionary<char, char> Markers {
+            get {
+                if (markers == null) {
+                    markers = new Dictionary<char, char>();
+                    markers.Add('　', DISPLAY_WIDE_SPACE);
+                    markers.Add(' ', DISPLAY_HALF_SPACE);
+                    markers.Add('\r', DISPLAY_NEWLINE);
+                    markers.Add('\t', DISPLAY_TAB);
+                }
+                return markers;
+            }
+        }
 
-        static TextEditorRenderer() {
-            markerChars = new Dictionary<char, char>();
-            markerChars.Add('　', DISPLAY_WIDE_SPACE);
-            markerChars.Add(' ', DISPLAY_HALF_SPACE);
-            markerChars.Add('\r', DISPLAY_NEWLINE);
-            markerChars.Add('\t', DISPLAY_TAB);
+        public static void DrawClient(TextEditor editor, PaintEventArgs e) {
+            DrawClient(editor, e.Graphics, e.ClipRectangle);
+        }
+
+        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip) {
+            HandleRef hwnd = new HandleRef(editor, editor.Handle);
+            IntPtr hMem = NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
+            IntPtr ptr = NativeMethods.LocalLock(hMem);
+            try {
+                unsafe {
+                    TextEditorRenderer renderer = new TextEditorRenderer(editor);
+                    renderer.DrawClient(graphics, clip, (char*)ptr.ToPointer());
+                }
+            } finally {
+                NativeMethods.LocalUnlock(hMem);
+            }
         }
 
         // -------------------------------------------------------------------------------
@@ -56,22 +58,53 @@ namespace Koz.Windows.Forms
         private SelectionRange selectionRange;
         private DrawColors drawColors;
         private Size fontSizeAverage;
-        private bool showMarker;
-        private int tabWidth;
 
         private TextEditorRenderer(TextEditor editor) {
             this.owner = editor;
         }
 
-        protected virtual void DrawClient(Graphics graphics, Rectangle clip, string text, bool showMarker, Color markerColor, int tabWidth) {
-            this.showMarker = showMarker;
+        public class HdcWrapper : SafeHandle
+        {
+            public HdcWrapper() : base(IntPtr.Zero, true) {
+
+            }
+
+            protected override bool ReleaseHandle() {
+
+                handle = IntPtr.Zero;
+                return true;
+            }
+
+            public override bool IsInvalid {
+                get {
+                    return handle == IntPtr.Zero;
+                }
+            }
+        }
+
+        protected unsafe virtual void DrawClient(Graphics graphics, Rectangle clip, char* text) {
+
             this.selectionRange = new SelectionRange(owner);
-            this.drawColors = new DrawColors(owner, markerColor);
-            this.tabWidth = tabWidth;
+            this.drawColors = new DrawColors(owner, owner.MarkerColor);
 
             using (var brush = new SolidBrush(owner.BackColor)) {
                 graphics.FillRectangle(brush, clip);
             }
+
+            DrawText(graphics, clip, text);
+
+            // FixedSingle はクライアント領域に線が書かれる
+            if (owner.BorderStyle == BorderStyle.FixedSingle) {
+                Rectangle borderRect = UTL.DeflateRect(owner.ClientRectangle, new Padding(1));
+                graphics.DrawRectangle(SystemPens.WindowFrame, borderRect);
+            }
+        }
+
+        protected unsafe virtual void DrawText(Graphics graphics, Rectangle clip, char* text) {
+
+            if (text == null) return;
+            int textLength = NativeMethods.lstrlenW(text);
+            if (textLength == 0) return;
 
             HandleRef hdc = new HandleRef(this, graphics.GetHdc());
             HandleRef hFont = new HandleRef(this, owner.Font.ToHfont());
@@ -82,10 +115,12 @@ namespace Koz.Windows.Forms
                 int startLine = owner.GetFirstVisibleLine();
                 int lineCount = owner.GetLineCount();
                 int bottom = clip.Bottom;
-                //Point rb = new Point(clip.Right, clip.Bottom);
-                //int rbIndex = owner.GetCharIndexFromPosition(rb);
                 Rectangle cr = owner.ClientRectangle;
+
                 int endLine = startLine;
+
+                var lst = new List<DrawRange>();
+
                 for (int i = startLine; i < lineCount; i++) {
                     // 行の最初の文字位置を取得
                     int lineStart = owner.GetFirstCharIndexFromLine(i);
@@ -94,55 +129,34 @@ namespace Koz.Windows.Forms
                     }
                     // 行の最初の文字の座標を取得
                     Point pt = owner.GetPositionFromCharIndex(lineStart);
-                    if (pt.IsInvalid()) {
-                        break;
-                    }
-                    if (pt.Y > bottom) {
-                        break;
-                    }
-                    endLine = i;
-                }
-
-                System.Diagnostics.Debug.Print("{0} ～ {1} を描画！！！", startLine, endLine); ;
-
-                for (int i = startLine; i < lineCount; i++) {
-
-                    // 行の最初の文字位置を取得
-                    int lineStart = owner.GetFirstCharIndexFromLine(i); 
-                    if (lineStart == -1) {
-                        break;
-                    }
-
-                    // 行の最初の文字の座標を取得
-                    Point pt = owner.GetPositionFromCharIndex(lineStart);
-                    if (pt.IsInvalid()) {
-                        break;
-                    }
-                    if (pt.Y > bottom) {
+                    if (pt.IsInvalid() || pt.Y > bottom) {
                         break;
                     }
 
                     // 行の長さを取得(改行が含まれない)
-                    int lineLength = owner.GetLineLength(i); 
+                    int lineLength = owner.GetLineLength(i);
                     int lineEnd = lineStart + lineLength - 1;
 
                     // 次の文字が改行で同一行なら含める
                     int checkCharIndex = lineEnd + 1;
-                    if (checkCharIndex < text.Length && text[checkCharIndex] == '\r') {
+                    if (checkCharIndex < textLength && text[checkCharIndex] == '\r') {
                         int checkLineIndex = owner.GetLineFromCharIndex(checkCharIndex);
                         if (checkLineIndex == i) {
                             lineEnd = checkCharIndex;
                         }
                     }
 
-
-
-
-
-                    Range drawRange = new Range(lineStart, lineEnd);
+                    DrawRange drawRange = new DrawRange(pt, lineStart, lineEnd);
                     if (drawRange.Length > 0) {
-                        DrawLine(hdc, pt, text, drawRange);
+                        lst.Add(drawRange);
                     }
+                    endLine = i;
+                }
+
+                //System.Diagnostics.Debug.Print("{0} {1} ～ {2} を描画", DateTime.Now, startLine, endLine); ;
+
+                for (int i = 0; i < lst.Count; i++) {
+                    DrawLine(hdc, lst[i], text);
                 }
 
             } finally {
@@ -152,11 +166,12 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private void DrawLine(HandleRef hdc, Point pt, string str, Range drawRange) {
+        private unsafe void DrawLine(HandleRef hdc, DrawRange drawRange, char* text) {
+            Point pt = drawRange.Location;
             DrawMode? prevMode = null;
-            var sb = new StringBuilder(str.Length);
+            var sb = new StringBuilder(drawRange.Length * 2);
             for (int pos = drawRange.Start; pos <= drawRange.End; pos++) {
-                char c = str[pos];
+                char c = text[pos];
                 DrawMode mode = GetDrawMode(pos, ref c);
                 if (prevMode.HasValue) {
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
@@ -178,7 +193,7 @@ namespace Koz.Windows.Forms
             if (c == '\t') {
                 mode |= DrawMode.Tab;
             }
-            if (showMarker && markerChars.TryGetValue(c, out char outchar)) {
+            if (owner.ShowMarker && Markers.TryGetValue(c, out char outchar)) {
                 c = outchar;
                 mode |= DrawMode.Marker;
             }
@@ -208,7 +223,7 @@ namespace Koz.Windows.Forms
         private void DrawTabHighlight(HandleRef hdc, Point pt) {
             Point minPt = owner.GetPositionFromCharIndex(0);
             int X = pt.X - minPt.X;
-            int tabPixelWidth = fontSizeAverage.Width * tabWidth;
+            int tabPixelWidth = fontSizeAverage.Width * owner.TabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
             var rect = new Rectangle(pt, new Size(width, fontSizeAverage.Height));
             using (var g = Graphics.FromHdcInternal(hdc.Handle)) {
@@ -297,19 +312,25 @@ namespace Koz.Windows.Forms
             }
         }
 
+        private class DrawRange : Range
+        {
+            public DrawRange(Point pt, int start, int end)
+                : base(start, end) {
+                Location = pt;
+            }
+            public Point Location;
+        }
+
         private class SelectionRange : Range
         {
-            public SelectionRange(Control editor) {
-                NativeMethods.SendMessage(
-                                 new HandleRef(editor, editor.Handle),
-                                 NativeMethods.EM_GETSEL,
-                                 out Start, out End);
+            public SelectionRange(TextEditor editor) {
+                editor.GetSelect(out Start, out End);
             }
         }
 
         protected int WindowStyle {
             get {
-                return unchecked((int)(long)NativeMethods.GetWindowLong(new HandleRef(this,owner.Handle), NativeMethods.GWL_STYLE));
+                return unchecked((int)(long)NativeMethods.GetWindowLong(new HandleRef(this, owner.Handle), NativeMethods.GWL_STYLE));
             }
         }
 

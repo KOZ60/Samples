@@ -39,18 +39,5 @@ namespace Koz.Windows.Forms
         protected virtual void OnDisposed(EventArgs e) { }
         protected virtual void OnHandleDestroyed(EventArgs e) { }
 
-        protected override void WndProc(ref Message m) {
-            switch (m.Msg) {
-                case NativeMethods.WM_NCDESTROY:
-                    base.WndProc(ref m);
-                    ReleaseHandle();
-                    break;
-
-                default:
-                    base.WndProc(ref m);
-                    break;
-
-            }
-        }
     }
 }

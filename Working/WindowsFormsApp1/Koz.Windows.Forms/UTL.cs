@@ -8,6 +8,7 @@ using System.Windows.Forms;
 namespace Koz.Windows.Forms
 {
     public static class UTL {
+
         // フォントサイズの平均値を取得
         public static Size GetFontSizeAverage(Font font) {
             HandleRef hdc = new HandleRef(null, NativeMethods.GetDC(new HandleRef(null, IntPtr.Zero)));
@@ -26,6 +27,14 @@ namespace Koz.Windows.Forms
             return new Size(tmNative.tmAveCharWidth, tmNative.tmHeight);
         }
 
+        public static Rectangle DeflateRect(Rectangle rect, Padding padding) {
+            rect.X += padding.Left;
+            rect.Y += padding.Top;
+            rect.Width -= padding.Horizontal;
+            rect.Height -= padding.Vertical;
+            return rect;
+        }
+ 
         [ThreadStatic]
         private static int lockCount = 0;
 
