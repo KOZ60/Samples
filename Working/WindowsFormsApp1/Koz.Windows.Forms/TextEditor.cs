@@ -120,8 +120,6 @@ namespace Koz.Windows.Forms
                 nSizeNew = INITIAL_MEMORY_SIZE;
             }
 
-            HandleRef hwnd = new HandleRef(this, Handle);
-
             IntPtr hMemOld = SendMessage(NativeMethods.EM_GETHANDLE);
 
             int nSizeOld = (int)NativeMethods.LocalSize(hMemOld);
@@ -163,7 +161,7 @@ namespace Koz.Windows.Forms
 
         private FontHandleWrapper fontHandleWrapper;
 
-        public FontHandleWrapper FontHandleWrapper {
+        protected FontHandleWrapper FontHandleWrapper {
             get {
                 if (fontHandleWrapper == null) {
                     fontHandleWrapper = new FontHandleWrapper(Font);
@@ -308,7 +306,7 @@ namespace Koz.Windows.Forms
         }
 
         private void WmReflectCommand(ref Message m) {
-            switch (UTL.HIWORD(m.WParam)) {
+            switch (NativeMethods.Util.HIWORD(m.WParam)) {
 
                 case NativeMethods.EN_CHANGE:
                     OnTextChanged(EventArgs.Empty);
@@ -457,11 +455,11 @@ namespace Koz.Windows.Forms
             }
         }
 
-        internal void SetSelect(int start, int end) {
+        internal protected void SetSelect(int start, int end) {
             SendMessage(NativeMethods.EM_SETSEL, (IntPtr)start, (IntPtr)end);
         }
 
-        internal void GetSelect(out int start, out int end) {
+        internal protected void GetSelect(out int start, out int end) {
             NativeMethods.SendMessage(
                              new HandleRef(this, Handle),
                              NativeMethods.EM_GETSEL,
@@ -579,11 +577,12 @@ namespace Koz.Windows.Forms
             if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
                 return null;
             }
-            return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
+            return new Point(NativeMethods.Util.SignedLOWORD(pt), 
+                            NativeMethods.Util.SignedHIWORD(pt));
         }
 
         public virtual int GetCharIndexFromPosition(Point pt) {
-            int longPoint = UTL.MAKELONG(pt.X, pt.Y);
+            int longPoint = NativeMethods.Util.MAKELONG(pt.X, pt.Y);
             return SendMessageInt(NativeMethods.EM_CHARFROMPOS, IntPtr.Zero, new IntPtr(longPoint));
         }
 
@@ -621,6 +620,10 @@ namespace Koz.Windows.Forms
                 base.BackColor = value;
                 _BackColor = value;
             }
+        }
+
+        public override void ResetBackColor() {
+            BackColor = Color.Empty;
         }
 
         protected override Cursor DefaultCursor {
@@ -799,8 +802,8 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // WrapMode プロパティ
         // -------------------------------------------------------------------------------
-        private static readonly object EventWrapModeChanged = new object();
         public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
+        private static readonly object EventWrapModeChanged = new object();
         private WrapMode _WrapMode = DefaultWrapMode;
 
         /// <summary>
@@ -951,7 +954,7 @@ namespace Koz.Windows.Forms
         /// <summary>
         /// CaretColor の値を既定値に設定します。
         /// </summary>
-        internal void ResetCaretColor() {
+        public virtual void ResetCaretColor() {
             CaretColor = Color.Empty;
         }
 
@@ -975,6 +978,7 @@ namespace Koz.Windows.Forms
         /// WordBreak イベントを発生させます。
         /// </summary>
         protected virtual void OnWordBreak(WordBreakEventArgs e) {
+            e.Result = WrapModeController.DefaultWordBreakProc(e);
             var eh = Events[EventCaretColorChanged] as EventHandler<WordBreakEventArgs>;
             if (eh != null) {
                 eh(this, e);

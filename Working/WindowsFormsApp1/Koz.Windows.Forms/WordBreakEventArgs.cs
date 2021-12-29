@@ -31,7 +31,6 @@ namespace Koz.Windows.Forms
         public int TextLength { get; }
         public WordBreakCode Code;
         public int Result { get; set; }
-        public bool Handled { get; set; }
 
     }
 }

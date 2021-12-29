@@ -59,7 +59,8 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="TextEditorRenderer.cs" />
-    <Compile Include="UTL.cs" />
+    <Compile Include="LayoutUtils.cs" />
+    <Compile Include="WordBreakCharType.cs" />
     <Compile Include="WordBreakCode.cs" />
     <Compile Include="WordBreakEventArgs.cs" />
     <Compile Include="WrapModeController.cs" />

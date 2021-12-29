@@ -95,7 +95,7 @@ namespace Koz.Windows.Forms
 
             // FixedSingle はクライアント領域に線が書かれる
             if (owner.BorderStyle == BorderStyle.FixedSingle) {
-                Rectangle borderRect = UTL.DeflateRect(owner.ClientRectangle, new Padding(1));
+                Rectangle borderRect = LayoutUtils.DeflateRect(owner.ClientRectangle, new Padding(1));
                 graphics.DrawRectangle(SystemPens.WindowFrame, borderRect);
             }
         }

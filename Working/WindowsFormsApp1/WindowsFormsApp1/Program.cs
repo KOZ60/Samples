@@ -14,7 +14,6 @@ namespace WindowsFormsApp1
         [STAThread]
         static void Main()
         {
-
             Application.ThreadException +=
                  new System.Threading.ThreadExceptionEventHandler(
                      Application_ThreadException);
@@ -33,22 +32,17 @@ namespace WindowsFormsApp1
         private static void Application_ThreadException(object sender,
             System.Threading.ThreadExceptionEventArgs e) {
             try {
-                //エラーメッセージを表示する
                 MessageBox.Show(e.Exception.Message, "エラー");
             } finally {
-                //アプリケーションを終了する
                 Application.Exit();
             }
         }
 
-        //UnhandledExceptionイベントハンドラ
         private static void CurrentDomain_UnhandledException(object sender,
             UnhandledExceptionEventArgs e) {
             try {
-                //エラーメッセージを表示する
                 MessageBox.Show(((Exception)e.ExceptionObject).Message, "エラー");
             } finally {
-                //アプリケーションを終了する
                 Environment.Exit(1);
             }
         }

@@ -620,5 +620,55 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.Kernel32, CharSet = CharSet.Auto)]
         public unsafe static extern int lstrlen(char* lpString);
+
+        public static class Util
+        {
+            public static int MAKELONG(int low, int high) {
+                return (high << 16) | (low & 0xffff);
+            }
+
+            public static IntPtr MAKELPARAM(int low, int high) {
+                return (IntPtr)((high << 16) | (low & 0xffff));
+            }
+
+            public static int HIWORD(int n) {
+                return (n >> 16) & 0xffff;
+            }
+
+            public static int HIWORD(IntPtr n) {
+                return HIWORD(unchecked((int)(long)n));
+            }
+
+            public static int LOWORD(int n) {
+                return n & 0xffff;
+            }
+
+            public static int LOWORD(IntPtr n) {
+                return LOWORD(unchecked((int)(long)n));
+            }
+
+            public static int SignedHIWORD(IntPtr n) {
+                return SignedHIWORD(unchecked((int)(long)n));
+            }
+            public static int SignedLOWORD(IntPtr n) {
+                return SignedLOWORD(unchecked((int)(long)n));
+            }
+
+            public static int SignedHIWORD(int n) {
+                int i = (int)(short)((n >> 16) & 0xffff);
+                return i;
+            }
+
+            public static int SignedLOWORD(int n) {
+                int i = (int)(short)(n & 0xFFFF);
+                return i;
+            }
+
+            public static Point ToPoint(IntPtr lparam) {
+                int x = SignedLOWORD(lparam);
+                int y = SignedHIWORD(lparam);
+                return new Point(x, y);
+            }
+        }
     }
 }
