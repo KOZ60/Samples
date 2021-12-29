@@ -6,9 +6,6 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    /// <summary>
-    /// 不要になりました。
-    /// </summary>
     public class CaretController : NativeWindowBase<Control>
     {
         public static Color DefaultCaretColor = Color.Black;

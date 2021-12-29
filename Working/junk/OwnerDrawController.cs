@@ -10,7 +10,7 @@ using System.Drawing;
 namespace Koz.Windows.Forms
 {
     /// <summary>
-    /// オーナードロー制御(不要になりました。)
+    /// オーナードロー制御
     /// </summary>
     public class OwnerDrawController : NativeWindowBase<Control>
     {

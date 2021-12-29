@@ -6,9 +6,6 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    /// <summary>
-    /// 不要になりました。
-    /// </summary>
     /// <remarks>Multiline でなければダメ</remarks>
     public class BackColorKeeper : NativeWindowBase<Control>
     {
