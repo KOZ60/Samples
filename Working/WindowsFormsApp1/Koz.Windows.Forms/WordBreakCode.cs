@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Koz.Windows.Forms
+﻿namespace Koz.Windows.Forms
 {
     /// <summary>ワードラップ関数のアクションを指定します。</summary>
     public enum WordBreakCode

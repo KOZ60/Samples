@@ -45,14 +45,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BackColorKeeper.cs" />
     <Compile Include="CaretBitmap.cs" />
-    <Compile Include="CaretController.cs" />
     <Compile Include="FontHandleWrapper.cs" />
-    <Compile Include="GraphicsWrapper.cs" />
+    <Compile Include="GDIWrapper.cs" />
+    <Compile Include="IWrapModeControl.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NativeWindowBase.cs" />
-    <Compile Include="OwnerDrawController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyGridEx.cs">
       <SubType>Component</SubType>

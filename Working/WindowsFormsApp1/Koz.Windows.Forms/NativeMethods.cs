@@ -559,6 +559,8 @@ namespace Koz.Windows.Forms
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int msgId, IntPtr wParam, Delegate lParam);
 
+        public delegate int EditWordBreakProc(IntPtr lpch, int ichCurrent, int cch, WordBreakCode code);
+
         [DllImport(ExternDll.User32)]
         public static extern bool ShowCaret(HandleRef hWnd);
 

@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class TextEditor : Control
+    public class TextEditor : Control, IWrapModeControl
     {
         private const int INITIAL_MEMORY_SIZE = 32767;
 
@@ -21,14 +21,11 @@ namespace Koz.Windows.Forms
             public const string ERROR = "エラー";
         }
 
-        private readonly WrapModeController WrapModeController;
+        private WrapModeController<TextEditor> WrapModeController;
 
         public TextEditor() {
 
-            WrapModeController = new WrapModeController(this);
-            this.WrapMode = WrapModeController.DefaultWrapMode;
-
-            WrapModeController.WordBreak += WrapModeController_WordBreak;
+            WrapModeController = new WrapModeController<TextEditor>(this);
 
             SetStyle(ControlStyles.StandardClick
                             | ControlStyles.StandardDoubleClick
@@ -43,9 +40,8 @@ namespace Koz.Windows.Forms
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
-            if (fontHandleWrapper != null) {
-                fontHandleWrapper.Dispose();
-            }
+            fontHandleWrapper?.Dispose();
+            caretBitmap?.Dispose();
         }
 
         protected override CreateParams CreateParams {
@@ -79,7 +75,7 @@ namespace Koz.Windows.Forms
                     cp.Style |= NativeMethods.WS_HSCROLL;
                 }
                 cp.Style |= NativeMethods.WS_VSCROLL;
- 
+
                 return cp;
             }
         }
@@ -88,7 +84,6 @@ namespace Koz.Windows.Forms
             base.OnHandleCreated(e);
             ReAllocMemory(0, false);
             SetWindowFont();
-            WrapModeController.Install();
         }
 
         protected override void OnResize(EventArgs e) {
@@ -100,23 +95,21 @@ namespace Koz.Windows.Forms
             HandleRef hwnd = new HandleRef(this, handle);
 
             // 長さを無制限に
-            NativeMethods.SendMessage(hwnd, NativeMethods.EM_LIMITTEXT, IntPtr.Zero, IntPtr.Zero);
+            SendMessage(NativeMethods.EM_LIMITTEXT);
 
             // Tab 幅をセットする
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETTABSTOPS, (IntPtr)1, new int[] { TabWidth * 4 });
 
             // 両端のマージンをゼロに
             IntPtr wp = new IntPtr(NativeMethods.EC_LEFTMARGIN | NativeMethods.EC_RIGHTMARGIN);
-            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETMARGINS, wp, IntPtr.Zero);
+            SendMessage(NativeMethods.EM_SETMARGINS, wp, IntPtr.Zero);
 
             // 右端を半角２文字分あける
             var rect = new NativeMethods.RECT();
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
 
             // 右を半角２文字分空ける(↓を表示するため)
-            Size avg = FontAverageSize;
-            var cs = ClientRectangle;
-            rect.right = cs.Right - avg.Width * 2;
+            rect.right = ClientRectangle.Right - FontAverageSize.Width * 2;
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
         }
 
@@ -129,7 +122,7 @@ namespace Koz.Windows.Forms
 
             HandleRef hwnd = new HandleRef(this, Handle);
 
-            IntPtr hMemOld = NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
+            IntPtr hMemOld = SendMessage(NativeMethods.EM_GETHANDLE);
 
             int nSizeOld = (int)NativeMethods.LocalSize(hMemOld);
             if (!force && nSizeNew < nSizeOld) {
@@ -155,7 +148,7 @@ namespace Koz.Windows.Forms
             NativeMethods.LocalUnlock(hMemOld);
             NativeMethods.LocalUnlock(hMemNew);
 
-            NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
+            SendMessage(NativeMethods.EM_SETHANDLE, hMemNew, IntPtr.Zero);
 
             NativeMethods.LocalFree(hMemOld);
 
@@ -166,10 +159,6 @@ namespace Koz.Windows.Forms
         protected override void OnPaint(PaintEventArgs e) {
             TextEditorRenderer.DrawClient(this, e);
             base.OnPaint(e);
-        }
-
-        private void WrapModeController_WordBreak(object sender, WordBreakEventArgs e) {
-            OnWordBreak(e);
         }
 
         private FontHandleWrapper fontHandleWrapper;
@@ -243,7 +232,9 @@ namespace Koz.Windows.Forms
                 case NativeMethods.WM_VSCROLL:
                 case NativeMethods.WM_LBUTTONDBLCLK:
                 case NativeMethods.WM_SETTEXT:
-                    WndProcWithLock(ref m);
+                    // 描画ロックして Invalidate
+                    LockWndProc(ref m);
+                    Invalidate(true);
                     break;
 
                 case NativeMethods.WM_SETFOCUS:
@@ -292,6 +283,25 @@ namespace Koz.Windows.Forms
             //System.Diagnostics.Debug.Print(" {0} {1}", new string('-', count), m);
         }
 
+        private int lockCount = 0;
+
+        public int LockWindow() {
+            if (lockCount == 0) {
+                NativeMethods.LockWindowUpdate(new HandleRef(this, Handle));
+            }
+            lockCount += 1;
+            return lockCount;
+        }
+
+        public int UnlockWindow() {
+            lockCount -= 1;
+            if (lockCount <= 0) {
+                NativeMethods.LockWindowUpdate(new HandleRef(null, IntPtr.Zero));
+                lockCount = 0;
+            }
+            return lockCount;
+        }
+
         private void WmSetFocus(ref Message m) {
             base.WndProc(ref m);
             ShowCaret();
@@ -324,25 +334,20 @@ namespace Koz.Windows.Forms
             m.Result = (IntPtr)(unchecked((int)(long)m.Result) | NativeMethods.DLGC_WANTTAB);
         }
 
-        // 描画ロックして Invalidate
-        private void WndProcWithLock(ref Message m) {
-            UTL.LockWindow(Handle);
+        private void LockWndProc(ref Message m) {
+            LockWindow();
             base.WndProc(ref m);
-            UTL.UnlockWindow();
-            Invalidate(true);
+            UnlockWindow();
         }
 
         private void WmKeyDown(ref Message m) {
-            Rectangle clip = GetCaretClip();
             GetSelect(out int start, out int end);
-            
-            UTL.LockWindow(Handle);
-            base.WndProc(ref m);
-            UTL.UnlockWindow();
-
             if (end - start > 0) {
+                LockWndProc(ref m);
                 Invalidate();
             } else {
+                Rectangle clip = GetCaretClip();
+                LockWndProc(ref m);
                 NativeMethods.Keystroke keystroke = NativeMethods.GetKeystroke(ref m);
                 if (keystroke.HasFlag(NativeMethods.Keystroke.KF_REPEAT)) {
                     Refresh(clip);
@@ -358,31 +363,27 @@ namespace Koz.Windows.Forms
             int currentLine = GetLineFromPosition(new Point(pt.x, pt.y));
 
             int startLine = currentLine > 0 ? currentLine - 1 : currentLine;
-            Point startPt = GetFirstCharPositionFromLine(startLine);
+            Point? startPt = GetFirstCharPositionFromLine(startLine);
+            int top = startPt.HasValue ? startPt.Value.Y : 0;
 
             int lastIndex = GetLineCount() - 1;
             int endLine = currentLine + 1 > lastIndex ? lastIndex : currentLine + 1;
-            Point endPt = GetFirstCharPositionFromLine(endLine);
-
-            int top = startPt.Y;
-            int bottom = endPt.Y + FontAverageSize.Height;
+            Point? endPt = GetFirstCharPositionFromLine(endLine);
+            int bottom = (endPt.HasValue ? endPt.Value.Y : 0);
+            bottom += FontAverageSize.Height;
             return Rectangle.FromLTRB(ClientRectangle.Left, top, ClientRectangle.Right, bottom);
         }
 
         private void WmChar(ref Message m) {
             GetSelect(out int start, out int end);
             if (end - start > 0) {
-                UTL.LockWindow(Handle);
-                base.WndProc(ref m);
-                UTL.UnlockWindow();
+                LockWndProc(ref m);
                 Invalidate();
             } else {
                 Rectangle clip = GetCaretClip();
-                UTL.LockWindow(Handle);
-                base.WndProc(ref m);
-                UTL.UnlockWindow();
+                LockWndProc(ref m);
                 char c = (char)m.WParam.ToInt32();
-                if (TextEditorRenderer.Markers.TryGetValue(c, out char _)) {
+                if (TextEditorRenderer.Markers.ContainsKey(c)) {
                     Refresh(clip);
                 } else {
                     Invalidate(clip);
@@ -402,16 +403,6 @@ namespace Koz.Windows.Forms
             InitializeHandle(m.HWnd);
         }
 
-        public virtual int TextLength {
-            get {
-                if (IsHandleCreated && Marshal.SystemDefaultCharSize == 2) {
-                    return NativeMethods.GetWindowTextLength(new HandleRef(this, Handle));
-                } else {
-                    return Text.Length;
-                }
-            }
-        }
-
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
             bool returnValue = base.ProcessCmdKey(ref msg, keyData);
             if (keyData == (Keys.Control | Keys.A)) {
@@ -426,9 +417,43 @@ namespace Koz.Windows.Forms
         }
 
         public void Select(int start, int length) {
-            if (IsHandleCreated) {
-                int end = start + length;
-                SetSelect(start, end);
+            int end = start + length;
+            SetSelect(start, end);
+        }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public virtual int TextLength {
+            get {
+                if (IsHandleCreated && Marshal.SystemDefaultCharSize == 2) {
+                    return NativeMethods.GetWindowTextLength(new HandleRef(this, Handle));
+                } else {
+                    return Text.Length;
+                }
+            }
+        }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int SelectionStart {
+            get {
+                GetSelect(out int start, out int end);
+                return start;
+            }
+            set {
+                Select(value, SelectionLength);
+            }
+        }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int SelectionLength {
+            get {
+                GetSelect(out int start, out int end);
+                return end - start;
+            }
+            set {
+                Select(SelectionStart, value);
             }
         }
 
@@ -544,15 +569,15 @@ namespace Koz.Windows.Forms
             return SendMessageInt(NativeMethods.EM_LINEFROMCHAR, charIndex);
         }
 
-        public Point GetFirstCharPositionFromLine(int lineIndex) {
+        public Point? GetFirstCharPositionFromLine(int lineIndex) {
             int charIndex = GetFirstCharIndexFromLine(lineIndex);
             return GetPositionFromCharIndex(charIndex);
         }
 
-        public virtual Point GetPositionFromCharIndex(int charIndex) {
+        public virtual Point? GetPositionFromCharIndex(int charIndex) {
             IntPtr pt = SendMessage(NativeMethods.EM_POSFROMCHAR, charIndex);
             if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
-                return UTL.InvalidPoint;
+                return null;
             }
             return new Point(UTL.SignedLOWORD(pt), UTL.SignedHIWORD(pt));
         }
@@ -775,20 +800,22 @@ namespace Koz.Windows.Forms
         // WrapMode プロパティ
         // -------------------------------------------------------------------------------
         private static readonly object EventWrapModeChanged = new object();
+        public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
+        private WrapMode _WrapMode = DefaultWrapMode;
 
         /// <summary>
         /// 複数行の場合の折り返しルールを取得または設定します。
         /// </summary>
         [Description("複数行の場合の折り返しルールを取得または設定します。")]
-        [DefaultValue(WrapModeController.DefaultWrapMode)]
+        [DefaultValue(DefaultWrapMode)]
         [Category(Category.Editor)]
         public WrapMode WrapMode {
             get {
-                return WrapModeController.WrapMode;
+                return _WrapMode;
             }
             set {
-                if (WrapModeController.WrapMode != value) {
-                    WrapModeController.WrapMode = value;
+                if (_WrapMode != value) {
+                    _WrapMode = value;
                     if (IsHandleCreated) {
                         RecreateHandle();
                         Invalidate();
@@ -940,6 +967,10 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         private object EventWordBreak = new object();
 
+        void IWrapModeControl.WordBreakCallback(WordBreakEventArgs e) {
+            OnWordBreak(e);
+        }
+
         /// <summary>
         /// WordBreak イベントを発生させます。
         /// </summary>
@@ -966,14 +997,14 @@ namespace Koz.Windows.Forms
         // BorderStyle プロパティ
         // -------------------------------------------------------------------------------
         private object EventBorderStyle = new object();
-        private BorderStyle _BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+        private BorderStyle _BorderStyle = BorderStyle.Fixed3D;
 
         /// <summary>
         /// コントロールの罫線の表示方法を取得または設定します。
         /// </summary>
         [Description("コントロールの罫線の表示方法を取得または設定します。")]
         [Category("TextBox")]
-        [DefaultValue(System.Windows.Forms.BorderStyle.Fixed3D)]
+        [DefaultValue(BorderStyle.Fixed3D)]
         public BorderStyle BorderStyle {
             get {
                 return _BorderStyle;
@@ -1011,5 +1042,6 @@ namespace Koz.Windows.Forms
                 Events.RemoveHandler(EventBorderStyle, value);
             }
         }
+
     }
 }

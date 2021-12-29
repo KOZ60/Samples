@@ -5,13 +5,29 @@ namespace Koz.Windows.Forms
 {
     public abstract class NativeWindowBase<T> : NativeWindow where T : Control
     {
-        protected readonly T Owner;
+        private T _Owner;
+
+        protected T Owner { 
+            get {
+                return _Owner;
+            }
+            private set {
+                if (_Owner != null) {
+                    _Owner.HandleCreated -= Owner_HandleCreated;
+                    _Owner.HandleDestroyed -= Owner_HandleDestroyed;
+                    _Owner.Disposed -= Owner_Disposed;
+                }
+                _Owner = value;
+                if (_Owner != null) {
+                    _Owner.HandleCreated += Owner_HandleCreated;
+                    _Owner.HandleDestroyed += Owner_HandleDestroyed;
+                    _Owner.Disposed += Owner_Disposed;
+                }
+            }
+        }
 
         public NativeWindowBase(T owner) {
             Owner = owner;
-            Owner.HandleCreated += Owner_HandleCreated;
-            Owner.HandleDestroyed += Owner_HandleDestroyed;
-            Owner.Disposed += Owner_Disposed;
             if (Owner.IsHandleCreated) {
                 Owner_HandleCreated(owner, EventArgs.Empty);
             }
@@ -28,11 +44,8 @@ namespace Koz.Windows.Forms
         }
 
         private void Owner_Disposed(object sender, EventArgs e) {
-            Control con = (Control)sender;
-            con.HandleCreated -= Owner_HandleCreated;
-            Owner.HandleDestroyed -= Owner_HandleDestroyed;
-            con.Disposed -= Owner_Disposed;
             OnDisposed(e);
+            Owner = null;
         }
 
         protected virtual void OnHandleCreated(EventArgs e) { }

@@ -5,44 +5,41 @@ using System.Text;
 
 namespace Koz.Windows.Forms
 {
-    public class GraphicsWrapper : IDisposable
+    public class GDIWrapper : IDisposable
     {
         private HandleRef hdc;
         private HandleRef fontHandle;
-        private bool needDeleteHdc;
-        private bool needDeleteFont;
+        private bool deleteHdc;
+        private bool deleteFont;
         private HandleRef oldFont;
 
-        public GraphicsWrapper(Font font) : this(font.ToHfont(), true) { }
+        public GDIWrapper(Font font) : this(font.ToHfont(), true) { }
 
-        public GraphicsWrapper(IntPtr fontHandle, bool needDeleteFont) {
-            IntPtr hdc = NativeMethods.CreateCompatibleDC(new HandleRef(this, IntPtr.Zero));
-            Initialize(hdc, true, fontHandle, needDeleteFont);
-        }
+        public GDIWrapper(IntPtr fontHandle, bool deleteFont) 
+            : this(IntPtr.Zero, true, fontHandle, deleteFont) { }
 
-        public GraphicsWrapper(IntPtr hdc, Font font)  {
-            Initialize(hdc, false, font.ToHfont(), true);
-        }
+        public GDIWrapper(IntPtr hdc, Font font)
+            : this(hdc, false, font.ToHfont(), true) { }
 
-        public GraphicsWrapper(IntPtr hdc, bool needDeleteHdc, IntPtr fontHandle, bool needDeleteFont) {
-            Initialize(hdc, needDeleteHdc, fontHandle, needDeleteFont);
-        }
-
-        private void Initialize(IntPtr hdc, bool needDeleteHdc, IntPtr fontHandle, bool needDeleteFont) {
+        public GDIWrapper(IntPtr hdc, bool deleteHdc, IntPtr fontHandle, bool deleteFont) {
+            if (hdc == IntPtr.Zero) {
+                hdc = NativeMethods.CreateCompatibleDC(new HandleRef(this, IntPtr.Zero));
+                deleteHdc = true;
+            }
             this.hdc = new HandleRef(this, hdc);
-            this.needDeleteHdc = needDeleteHdc;
+            this.deleteHdc = deleteHdc;
             this.fontHandle = new HandleRef(this, fontHandle);
-            this.needDeleteFont = needDeleteFont;
+            this.deleteFont = deleteFont;
             this.oldFont = new HandleRef(this, NativeMethods.SelectObject(this.hdc, this.fontHandle));
         }
 
         public void ChangeFont(Font font) {
             fontHandle = new HandleRef(this, font.ToHfont());
             HandleRef prevFont = new HandleRef(this, NativeMethods.SelectObject(hdc, fontHandle));
-            if (needDeleteFont) {
+            if (deleteFont) {
                 NativeMethods.DeleteObject(prevFont);
             }
-            needDeleteFont = true;
+            deleteFont = true;
         }
 
         public IntPtr GetHdc() {
@@ -83,15 +80,15 @@ namespace Koz.Windows.Forms
             if (disposedValue) return;
             disposedValue = true;
             NativeMethods.SelectObject(hdc, oldFont);
-            if (needDeleteFont) {
+            if (deleteFont) {
                 NativeMethods.DeleteObject(fontHandle);
             }
-            if (needDeleteHdc) {
+            if (deleteHdc) {
                 NativeMethods.DeleteDC(hdc);
             }
         }
 
-        ~GraphicsWrapper() {
+        ~GDIWrapper() {
             Dispose(false);
         }
 

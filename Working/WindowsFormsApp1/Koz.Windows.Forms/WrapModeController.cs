@@ -6,32 +6,20 @@ using System.Windows.Forms;
 
 namespace Koz.Windows.Forms
 {
-    public class WrapModeController : NativeWindowBase<Control>
+    public class WrapModeController<T> : NativeWindowBase<T> where T : Control, IWrapModeControl
     {
-        public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
-
-        private delegate int EditWordBreakProc(IntPtr lpch, int ichCurrent, int cch, WordBreakCode code);
-        private readonly EditWordBreakProc EditWordBreakDelegate;
+        private readonly NativeMethods.EditWordBreakProc EditWordBreakDelegate;
         protected bool inMouseEvent = false;
         protected WrapMode wrapMode;
 
-        public WrapModeController(Control textBox) : base(textBox) {
-            EditWordBreakDelegate = new EditWordBreakProc(EditWordBreak);
-            this.WrapMode = WrapMode.NoWrap;
+        public WrapModeController(T textBox) : base(textBox) {
+            EditWordBreakDelegate = new NativeMethods.EditWordBreakProc(EditWordBreak);
         }
 
-        public void Install() {
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e);
             NativeMethods.SendMessage(new HandleRef(this, Handle),
                     NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, EditWordBreakDelegate);
-        }
-
-        public WrapMode WrapMode { 
-            get {
-                return wrapMode;
-            }
-            set {
-                wrapMode = value;
-            }
         }
 
         protected override void WndProc(ref Message m) {
@@ -49,15 +37,9 @@ namespace Koz.Windows.Forms
             }
         }
 
-        protected virtual void OnWordBreak(WordBreakEventArgs e) {
-            WordBreak?.Invoke(this, e);
-        }
-
-        public event EventHandler<WordBreakEventArgs> WordBreak;
-
         private int EditWordBreak(IntPtr lpch, int ichCurrent, int cch, WordBreakCode code) {
 
-            if (WrapMode == WrapMode.CharWrap && !inMouseEvent) {
+            if (Owner.WrapMode == WrapMode.CharWrap && !inMouseEvent) {
                 switch (code) {
                     case WordBreakCode.IsDelimiter:
                         return 0;
@@ -67,16 +49,18 @@ namespace Koz.Windows.Forms
                         return cch;
                 }
             } else {
-                WordBreakEventArgs e = new WordBreakEventArgs(lpch, ichCurrent, cch, code);
-                e.Result = EditWordBreak(e);
-                OnWordBreak(e);
+                WordBreakEventArgs e = new WordBreakEventArgs(Owner.WrapMode, lpch, ichCurrent, cch, code);
+                Owner.WordBreakCallback(e);
+                if (!e.Handled) {
+                    e.Result = EditWordBreak(e);
+                }
                 return e.Result;
             }
             return 0;
         }
 
-        private static int EditWordBreak(WordBreakEventArgs e) {
-            string text = e.Text;
+        private unsafe static int EditWordBreak(WordBreakEventArgs e) {
+            char* text = (char*)e.textPtr.ToPointer();
             int pos = e.Position;
             int length = e.TextLength;
 

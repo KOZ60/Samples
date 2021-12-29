@@ -106,7 +106,7 @@ namespace Koz.Windows.Forms
             int textLength = NativeMethods.lstrlen(text);
             if (textLength == 0) return;
 
-            using (var wrapper = new GraphicsWrapper(graphics.GetHdc(), owner.Font)) {
+            using (var wrapper = new GDIWrapper(graphics.GetHdc(), owner.Font)) {
 
                 fontSizeAverage = wrapper.GetFontAverageSize();
 
@@ -121,14 +121,15 @@ namespace Koz.Windows.Forms
                     var lst = new List<DrawRange>();
 
                     for (int i = startLine; i < lineCount; i++) {
+
                         // 行の最初の文字位置を取得
                         int lineStart = owner.GetFirstCharIndexFromLine(i);
                         if (lineStart == -1) {
                             break;
                         }
                         // 行の最初の文字の座標を取得
-                        Point pt = owner.GetPositionFromCharIndex(lineStart);
-                        if (pt.IsInvalid() || pt.Y > bottom) {
+                        Point? pt = owner.GetPositionFromCharIndex(lineStart);
+                        if (!pt.HasValue || pt.Value.Y > bottom) {
                             break;
                         }
 
@@ -145,8 +146,8 @@ namespace Koz.Windows.Forms
                             }
                         }
 
-                        DrawRange drawRange = new DrawRange(pt, lineStart, lineEnd);
-                        if (drawRange.Length > 0) {
+                        if (lineEnd - lineStart + 1 > 0) {
+                            DrawRange drawRange = new DrawRange(pt.Value, lineStart, lineEnd);
                             lst.Add(drawRange);
                         }
                         endLine = i;
@@ -164,7 +165,7 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private unsafe void DrawLine(GraphicsWrapper wrapper, DrawRange drawRange, char* text) {
+        private unsafe void DrawLine(GDIWrapper wrapper, DrawRange drawRange, char* text) {
             Point pt = drawRange.Location;
             DrawMode? prevMode = null;
             var sb = new StringBuilder(drawRange.Length * 2);
@@ -175,7 +176,7 @@ namespace Koz.Windows.Forms
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
                         DrawPart(wrapper, prevMode.Value, pt, sb);
                         sb.Clear();
-                        pt = owner.GetPositionFromCharIndex(pos);
+                        pt = owner.GetPositionFromCharIndex(pos).Value;
                     }
                 }
                 sb.Append(c);
@@ -204,7 +205,7 @@ namespace Koz.Windows.Forms
             return mode;
         }
 
-        private void DrawPart(GraphicsWrapper wrapper, DrawMode mode, Point pt, StringBuilder sb) {
+        private void DrawPart(GDIWrapper wrapper, DrawMode mode, Point pt, StringBuilder sb) {
             DrawColor drawColor = drawColors[mode];
             wrapper.SetColor(drawColor.Win32ForeColor, drawColor.Win32BackColor);
 
@@ -218,9 +219,9 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private void DrawTabHighlight(GraphicsWrapper wrapper, Point pt) {
-            Point minPt = owner.GetPositionFromCharIndex(0);
-            int X = pt.X - minPt.X;
+        private void DrawTabHighlight(GDIWrapper wrapper, Point pt) {
+            Point leftPt = owner.GetPositionFromCharIndex(0).Value;
+            int X = pt.X - leftPt.X;
             int tabPixelWidth = fontSizeAverage.Width * owner.TabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
             var rect = new Rectangle(pt, new Size(width, fontSizeAverage.Height));
