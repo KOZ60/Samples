@@ -106,7 +106,7 @@ namespace Koz.Windows.Forms
             int textLength = NativeMethods.lstrlen(text);
             if (textLength == 0) return;
 
-            using (var wrapper = new GDIWrapper(graphics.GetHdc(), owner.Font)) {
+            using (var wrapper = new GDIWrapper(graphics.GetHdc(), false, owner.FontHandleWrapper.Handle, false)) {
 
                 fontSizeAverage = wrapper.GetFontAverageSize();
 

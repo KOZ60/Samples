@@ -161,7 +161,7 @@ namespace Koz.Windows.Forms
 
         private FontHandleWrapper fontHandleWrapper;
 
-        protected FontHandleWrapper FontHandleWrapper {
+        internal protected FontHandleWrapper FontHandleWrapper {
             get {
                 if (fontHandleWrapper == null) {
                     fontHandleWrapper = new FontHandleWrapper(Font);
