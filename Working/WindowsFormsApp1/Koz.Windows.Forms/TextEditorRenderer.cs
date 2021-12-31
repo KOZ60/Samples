@@ -32,11 +32,11 @@ namespace Koz.Windows.Forms
             }
         }
 
-        public static void DrawClient(TextEditor editor, PaintEventArgs e) {
+        public static void DrawClient(FxTextEditor editor, PaintEventArgs e) {
             DrawClient(editor, e.Graphics, e.ClipRectangle);
         }
 
-        public static void DrawClient(TextEditor editor, Graphics graphics, Rectangle clip) {
+        public static void DrawClient(FxTextEditor editor, Graphics graphics, Rectangle clip) {
             HandleRef hwnd = new HandleRef(editor, editor.Handle);
             IntPtr hMem = NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETHANDLE, IntPtr.Zero, IntPtr.Zero);
             IntPtr ptr = NativeMethods.LocalLock(hMem);
@@ -54,32 +54,13 @@ namespace Koz.Windows.Forms
         // Instance
         // -------------------------------------------------------------------------------
 
-        private TextEditor owner;
+        private FxTextEditor owner;
         private SelectionRange selectionRange;
         private DrawColors drawColors;
         private Size fontSizeAverage;
 
-        private TextEditorRenderer(TextEditor editor) {
+        private TextEditorRenderer(FxTextEditor editor) {
             this.owner = editor;
-        }
-
-        public class HdcWrapper : SafeHandle
-        {
-            public HdcWrapper() : base(IntPtr.Zero, true) {
-
-            }
-
-            protected override bool ReleaseHandle() {
-
-                handle = IntPtr.Zero;
-                return true;
-            }
-
-            public override bool IsInvalid {
-                get {
-                    return handle == IntPtr.Zero;
-                }
-            }
         }
 
         protected unsafe virtual void DrawClient(Graphics graphics, Rectangle clip, char* text) {
@@ -106,9 +87,9 @@ namespace Koz.Windows.Forms
             int textLength = NativeMethods.lstrlen(text);
             if (textLength == 0) return;
 
-            using (var wrapper = new GdiGraphics(graphics.GetHdc(), false, owner.FontHandleWrapper.Handle, false)) {
+            using (var gdi = new GdiGraphics(graphics.GetHdc(), false, owner.FontHandle, false)) {
 
-                fontSizeAverage = wrapper.GetFontAverageSize();
+                fontSizeAverage = gdi.GetFontAverageSize();
 
                 try {
                     int startLine = owner.GetFirstVisibleLine();
@@ -156,7 +137,7 @@ namespace Koz.Windows.Forms
                     //System.Diagnostics.Debug.Print("{0} {1} ～ {2} を描画", DateTime.Now, startLine, endLine); ;
 
                     for (int i = 0; i < lst.Count; i++) {
-                        DrawLine(wrapper, lst[i], text);
+                        DrawLine(gdi, lst[i], text);
                     }
 
                 } finally {
@@ -165,7 +146,7 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private unsafe void DrawLine(GdiGraphics wrapper, DrawRange drawRange, char* text) {
+        private unsafe void DrawLine(GdiGraphics gdi, DrawRange drawRange, char* text) {
             Point pt = drawRange.Location;
             DrawMode? prevMode = null;
             var sb = new StringBuilder(drawRange.Length * 2);
@@ -174,7 +155,7 @@ namespace Koz.Windows.Forms
                 DrawMode mode = GetDrawMode(pos, ref c);
                 if (prevMode.HasValue) {
                     if (mode != prevMode || mode.HasFlag(DrawMode.Tab)) {
-                        DrawPart(wrapper, prevMode.Value, pt, sb);
+                        DrawPart(gdi, prevMode.Value, pt, sb);
                         sb.Clear();
                         pt = owner.GetPositionFromCharIndex(pos).Value;
                     }
@@ -183,7 +164,7 @@ namespace Koz.Windows.Forms
                 prevMode = mode;
             }
             if (sb.Length > 0) {
-                DrawPart(wrapper, prevMode.Value, pt, sb);
+                DrawPart(gdi, prevMode.Value, pt, sb);
             }
         }
 
@@ -205,27 +186,27 @@ namespace Koz.Windows.Forms
             return mode;
         }
 
-        private void DrawPart(GdiGraphics wrapper, DrawMode mode, Point pt, StringBuilder sb) {
+        private void DrawPart(GdiGraphics gdi, DrawMode mode, Point pt, StringBuilder sb) {
             DrawColor drawColor = drawColors[mode];
-            wrapper.SetColor(drawColor.Win32ForeColor, drawColor.Win32BackColor);
+            gdi.SetColor(drawColor.Win32ForeColor, drawColor.Win32BackColor);
 
             if (mode.HasFlag(DrawMode.Tab)) {
                 if (mode.HasFlag(DrawMode.Highlight)) {
-                    DrawTabHighlight(wrapper, pt);
+                    DrawTabHighlight(gdi, pt);
                 }
-                wrapper.TextOut(pt.X + 3, pt.Y,  sb);
+                gdi.TextOut(pt.X + 3, pt.Y,  sb);
             } else {
-                wrapper.TextOut(pt.X, pt.Y, sb);
+                gdi.TextOut(pt.X, pt.Y, sb);
             }
         }
 
-        private void DrawTabHighlight(GdiGraphics wrapper, Point pt) {
+        private void DrawTabHighlight(GdiGraphics gdi, Point pt) {
             Point leftPt = owner.GetPositionFromCharIndex(0).Value;
             int X = pt.X - leftPt.X;
             int tabPixelWidth = fontSizeAverage.Width * owner.TabWidth;
             int width = ((X + tabPixelWidth) / tabPixelWidth) * tabPixelWidth - X;
             var rect = new Rectangle(pt, new Size(width, fontSizeAverage.Height));
-            using (var g = Graphics.FromHdcInternal(wrapper.GetHdc())) {
+            using (var g = Graphics.FromHdcInternal(gdi.GetHdc())) {
                 g.FillRectangle(SystemBrushes.Highlight, rect);
             }
         }
@@ -267,12 +248,7 @@ namespace Koz.Windows.Forms
 
         private class DrawColors : Dictionary<DrawMode, DrawColor>
         {
-            private Control Editor;
-            private Color MarkerColor;
-
             public DrawColors(Control editor, Color markerColor) {
-                Editor = editor;
-                MarkerColor = markerColor;
                 Add(DrawMode.Normal, new DrawColor(editor.ForeColor, editor.BackColor));
                 Add(DrawMode.Marker, new DrawColor(markerColor, editor.BackColor));
                 Add(DrawMode.Highlight, new DrawColor(SystemColors.HighlightText, SystemColors.Highlight));
@@ -317,12 +293,12 @@ namespace Koz.Windows.Forms
                 : base(start, end) {
                 Location = pt;
             }
-            public Point Location;
+            public Point Location { get; }
         }
 
         private class SelectionRange : Range
         {
-            public SelectionRange(TextEditor editor) {
+            public SelectionRange(FxTextEditor editor) {
                 editor.GetSelect(out Start, out End);
             }
         }

@@ -9,7 +9,7 @@ namespace Koz.Windows.Forms
     {
         private HandleRef hdc;
         private HandleRef fontHandle;
-        private bool deleteHdc;
+        private readonly bool deleteHdc;
         private bool deleteFont;
         private HandleRef oldFont;
 

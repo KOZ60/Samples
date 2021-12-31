@@ -1,9 +1,4 @@
-﻿using System;
-using System.Reflection;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Drawing;
 using System.Windows.Forms;
 
 namespace Koz.Windows.Forms

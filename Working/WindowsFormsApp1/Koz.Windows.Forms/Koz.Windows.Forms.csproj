@@ -47,9 +47,13 @@
   <ItemGroup>
     <Compile Include="BkModeConstans.cs" />
     <Compile Include="CaretBitmap.cs" />
+    <Compile Include="FxDateTimePicker.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="FontHandleWrapper.cs" />
     <Compile Include="GdiGraphics.cs" />
     <Compile Include="IWrapModeControl.cs" />
+    <Compile Include="Tools\DateTimePickerMessage.cs" />
     <Compile Include="Tools\EditMessage.cs" />
     <Compile Include="Tools\MessageMonitor.cs" />
     <Compile Include="NativeMethods.cs" />
@@ -58,7 +62,7 @@
     <Compile Include="PropertyGridEx.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="TextEditor.cs">
+    <Compile Include="FxTextEditor.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="TextEditorRenderer.cs" />

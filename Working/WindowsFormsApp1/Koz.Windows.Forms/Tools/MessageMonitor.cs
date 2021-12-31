@@ -10,7 +10,7 @@ namespace Koz.Windows.Forms.Tools
     /// </summary>
     public static class MessageMonitor
     {
-        // このように使います
+        // 【使い方】
         //protected override void WndProc(ref Message m) {
         //    try {
         //        MessageMonitor.Enter<EditMessage>(ref m);
@@ -23,6 +23,7 @@ namespace Koz.Windows.Forms.Tools
         private const int
             WM_USER = 0x0400,
             WM_REFLECT = WM_USER + 0x1C00;
+
 
         public static string MsgToString<TEnum>(int msg) where TEnum : struct {
             if ((msg & WM_REFLECT) == WM_REFLECT) {
@@ -46,23 +47,23 @@ namespace Koz.Windows.Forms.Tools
             return false;
         }
 
-        static Dictionary<IntPtr, int> dic = new Dictionary<IntPtr, int>();
+        private static readonly Dictionary<IntPtr, int> countDictionary = new Dictionary<IntPtr, int>();
 
         private static int GetCount(IntPtr hwnd) {
-            lock (dic) {
-                dic.TryGetValue(hwnd, out int count);
+            lock (countDictionary) {
+                countDictionary.TryGetValue(hwnd, out int count);
                 return count;
             }
         }
 
         private static void SaveCount(IntPtr hwnd, int count) {
-            lock (dic) {
+            lock (countDictionary) {
                 if (count == 0) {
-                    if (dic.ContainsKey(hwnd)) {
-                        dic.Remove(hwnd);
+                    if (countDictionary.ContainsKey(hwnd)) {
+                        countDictionary.Remove(hwnd);
                     }
                 } else {
-                    dic[hwnd] = count;
+                    countDictionary[hwnd] = count;
                 }
             }
         }

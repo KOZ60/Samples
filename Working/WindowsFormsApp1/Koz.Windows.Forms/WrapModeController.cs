@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -8,17 +7,17 @@ namespace Koz.Windows.Forms
 {
     public class WrapModeController<T> : NativeWindowBase<T> where T : Control, IWrapModeControl
     {
-        private readonly NativeMethods.EditWordBreakProc EditWordBreakDelegate;
+        private readonly NativeMethods.EditWordBreakProc editWordBreakDelegate;
         protected WrapMode wrapMode;
 
         public WrapModeController(T owner) : base(owner) {
-            EditWordBreakDelegate = new NativeMethods.EditWordBreakProc(EditWordBreak);
+            editWordBreakDelegate = new NativeMethods.EditWordBreakProc(EditWordBreak);
         }
 
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
             NativeMethods.SendMessage(new HandleRef(this, Handle),
-                    NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, EditWordBreakDelegate);
+                    NativeMethods.EM_SETWORDBREAKPROC, IntPtr.Zero, editWordBreakDelegate);
         }
 
         int mouseEventCount = 0;

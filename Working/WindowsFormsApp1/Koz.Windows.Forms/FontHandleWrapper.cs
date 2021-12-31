@@ -6,13 +6,13 @@ namespace Koz.Windows.Forms
 {
     public class FontHandleWrapper : SafeHandle
     {
-        private FontFamily FontFamily;
-        private bool GdiVerticalFont;
-        private byte GdiCharSet;
-        private FontStyle Style;
-        private float Size;
-        private GraphicsUnit Unit;
-        private Size averageSize;
+        private readonly FontFamily FontFamily;
+        private readonly bool GdiVerticalFont;
+        private readonly byte GdiCharSet;
+        private readonly FontStyle Style;
+        private readonly float Size;
+        private readonly GraphicsUnit Unit;
+        private Size? averageSize;
 
         public FontHandleWrapper(Font font) : base(IntPtr.Zero, true) {
             handle = font.ToHfont();
@@ -22,14 +22,16 @@ namespace Koz.Windows.Forms
             Style = font.Style;
             Size = font.Size;
             Unit = font.Unit;
-            using (var wrapper = new GdiGraphics(handle, false)) {
-                averageSize = wrapper.GetFontAverageSize();
-            }
         }
 
         public Size AverageSize {
             get {
-                return averageSize;
+                if (!averageSize.HasValue) {
+                    using (var wrapper = new GdiGraphics(handle, false)) {
+                        averageSize = wrapper.GetFontAverageSize();
+                    }
+                }
+                return averageSize.Value;
             }
         }
 

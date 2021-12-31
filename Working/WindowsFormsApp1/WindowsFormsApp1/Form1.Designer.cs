@@ -30,7 +30,7 @@ namespace WindowsFormsApp1
         private void InitializeComponent()
         {
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.textEditor1 = new Koz.Windows.Forms.TextEditor();
+            this.textEditor1 = new Koz.Windows.Forms.FxTextEditor();
             this.propertyGrid1 = new Koz.Windows.Forms.PropertyGridEx();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -94,7 +94,7 @@ namespace WindowsFormsApp1
 
         private System.Windows.Forms.SplitContainer splitContainer1;
         private Koz.Windows.Forms. PropertyGridEx propertyGrid1;
-        private Koz.Windows.Forms.TextEditor textEditor1;
+        private Koz.Windows.Forms.FxTextEditor textEditor1;
     }
 }
 

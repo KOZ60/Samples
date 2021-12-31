@@ -79,16 +79,16 @@ namespace Koz.Windows.Forms.Tools
             }
         }
 
-        private void Owner_FontChanged(object sender, EventArgs e) {
-            SetWindowFont();
-        }
-
         private void Owner_MouseLeave(object sender, EventArgs e) {
             MouseIsOver = false;
         }
 
         private void Owner_MouseEnter(object sender, EventArgs e) {
             MouseIsOver = true;
+        }
+
+        private void Owner_FontChanged(object sender, EventArgs e) {
+            SetWindowFont();
         }
 
         protected void SetWindowFont() {
@@ -230,7 +230,12 @@ namespace Koz.Windows.Forms.Tools
                     }
                     break;
 
+                case NativeMethods.WM_HSCROLL:
+                case NativeMethods.WM_VSCROLL:
+                case NativeMethods.WM_SETTEXT:
                 case NativeMethods.WM_KILLFOCUS:
+                case NativeMethods.WM_SIZE:
+                    // 大規模な書き換えが発生するとき
                     try {
                         BeginUpdate();
                         base.WndProc(ref m);

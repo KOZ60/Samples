@@ -5,23 +5,23 @@ namespace Koz.Windows.Forms
 {
     public abstract class NativeWindowBase<T> : NativeWindow where T : Control
     {
-        private T _Owner;
+        private T owner;
 
         protected T Owner { 
             get {
-                return _Owner;
+                return owner;
             }
             private set {
-                if (_Owner != null) {
-                    _Owner.HandleCreated -= Owner_HandleCreated;
-                    _Owner.HandleDestroyed -= Owner_HandleDestroyed;
-                    _Owner.Disposed -= Owner_Disposed;
+                if (owner != null) {
+                    owner.HandleCreated -= Owner_HandleCreated;
+                    owner.HandleDestroyed -= Owner_HandleDestroyed;
+                    owner.Disposed -= Owner_Disposed;
                 }
-                _Owner = value;
-                if (_Owner != null) {
-                    _Owner.HandleCreated += Owner_HandleCreated;
-                    _Owner.HandleDestroyed += Owner_HandleDestroyed;
-                    _Owner.Disposed += Owner_Disposed;
+                owner = value;
+                if (owner != null) {
+                    owner.HandleCreated += Owner_HandleCreated;
+                    owner.HandleDestroyed += Owner_HandleDestroyed;
+                    owner.Disposed += Owner_Disposed;
                 }
             }
         }

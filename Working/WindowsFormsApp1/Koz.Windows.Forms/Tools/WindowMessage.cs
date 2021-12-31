@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Koz.Windows.Forms.Tools
+﻿namespace Koz.Windows.Forms.Tools
 {
     public enum WindowMessage
     {

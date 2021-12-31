@@ -1,15 +1,44 @@
 ﻿using System;
-using System.Text;
 using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Koz.Windows.Forms.Tools;
 
 namespace Koz.Windows.Forms
 {
-    public class TextEditor : Control, IWrapModeControl
+    public class FxTextEditor : Control, IWrapModeControl
     {
         private const int INITIAL_MEMORY_SIZE = 32767;
+
+        private static readonly object EventBorderStyleChanged = new object();
+        private static readonly object EventCaretColorChanged = new object();
+        private static readonly object EventCaretWidthChanged = new object();
+        private static readonly object EventMarkerColorChanged = new object();
+        private static readonly object EventShowMarkerChanged = new object();
+        private static readonly object EventTabWidthChanged = new object();
+        private static readonly object EventWrapModeChanged = new object();
+        private static readonly object EventWordBreak = new object();
+
+        public static readonly Color DefaultCaretColor = Color.Black;
+        public static readonly Color DefaultMarkerColor = Color.Green;
+
+        public const BorderStyle DefaultBorderStyle = BorderStyle.Fixed3D;
+        public const int DefaultCaretWidth = 2;
+        public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
+
+        private Color backColor = Color.Empty;
+        private BorderStyle borderStyle = DefaultBorderStyle;
+        private CaretBitmap caretBitmap;
+        private Color caretColor = Color.Empty;
+        private int caretWidth = DefaultCaretWidth;
+        private Color markerColor = Color.Empty;
+        private bool showMarker = true;
+        private int tabWidth = 4;
+        private WrapMode wrapMode = DefaultWrapMode;
+
+        private readonly WrapModeController<FxTextEditor> wrapModeController;
+        private readonly OwnerDrawSupporter supporter;
 
         private static class MessageText
         {
@@ -21,11 +50,22 @@ namespace Koz.Windows.Forms
             public const string ERROR = "エラー";
         }
 
-        private WrapModeController<TextEditor> WrapModeController;
+        private static class Category
+        {
+            public const string Marker = "マーカー設定";
+            public const string Editor = "エディタ拡張";
+            public const string Caret = "キャレット設定";
+        }
 
-        public TextEditor() {
+        private static class ObsoleteMessage
+        {
+            public const string CannotChangeProperty = "プロパティを変更できません";
+        }
 
-            WrapModeController = new WrapModeController<TextEditor>(this);
+        public FxTextEditor() {
+
+            wrapModeController = new WrapModeController<FxTextEditor>(this);
+            supporter = new OwnerDrawSupporter(this);
 
             SetStyle(ControlStyles.StandardClick
                             | ControlStyles.StandardDoubleClick
@@ -40,7 +80,6 @@ namespace Koz.Windows.Forms
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
-            fontHandleWrapper?.Dispose();
             caretBitmap?.Dispose();
         }
 
@@ -80,15 +119,17 @@ namespace Koz.Windows.Forms
             }
         }
 
+        public void BeginUpdate() {
+            supporter.BeginUpdate();
+        }
+
+        public void EndUpdate() {
+            supporter.EndUpdate();
+        }
+
         protected override void OnHandleCreated(EventArgs e) {
             base.OnHandleCreated(e);
             ReAllocMemory(0, false);
-            SetWindowFont();
-        }
-
-        protected override void OnResize(EventArgs e) {
-            base.OnResize(e);
-            InitializeHandle(Handle);
         }
 
         protected virtual void InitializeHandle(IntPtr handle) {
@@ -109,7 +150,7 @@ namespace Koz.Windows.Forms
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_GETRECT, IntPtr.Zero, ref rect);
 
             // 右を半角２文字分空ける(↓を表示するため)
-            rect.right = ClientRectangle.Right - FontAverageSize.Width * 2;
+            rect.right = ClientRectangle.Right - supporter.FontAverageSize.Width * 2;
             NativeMethods.SendMessage(hwnd, NativeMethods.EM_SETRECT, IntPtr.Zero, ref rect);
         }
 
@@ -159,46 +200,16 @@ namespace Koz.Windows.Forms
             base.OnPaint(e);
         }
 
-        private FontHandleWrapper fontHandleWrapper;
-
-        internal protected FontHandleWrapper FontHandleWrapper {
+        internal protected IntPtr FontHandle {
             get {
-                if (fontHandleWrapper == null) {
-                    fontHandleWrapper = new FontHandleWrapper(Font);
-                } else if (!fontHandleWrapper.IsEquals(Font)) {
-                    fontHandleWrapper.Dispose();
-                    fontHandleWrapper = new FontHandleWrapper(Font);
-                }
-                return fontHandleWrapper;
+                return supporter.FontHandle;
             }
         }
-
-        public Size FontAverageSize {
-            get {
-                return FontHandleWrapper.AverageSize;
-            }
-        }
-
-        protected void SetWindowFont() {
-            SendMessage(NativeMethods.WM_SETFONT, FontHandleWrapper.Handle, IntPtr.Zero);
-        }
-
-        protected override void OnFontChanged(EventArgs e) {
-            if (IsHandleCreated) {
-                SetWindowFont();
-                if (Focused) {
-                    ShowCaret();
-                }
-            }
-            base.OnFontChanged(e);
-        }
-
-        CaretBitmap caretBitmap;
 
         protected CaretBitmap CaretBitmap {
             get {
-                Color caretColor = _CaretColor;
-                Size caretSize = new Size(CaretWidth, FontAverageSize.Height);
+                Color caretColor = CaretColor;
+                Size caretSize = new Size(CaretWidth, supporter.FontAverageSize.Height);
                 if (caretBitmap == null) {
                     caretBitmap = new CaretBitmap(caretColor, caretSize);
                 } else if (caretBitmap.Color != caretColor || caretBitmap.Size != caretSize) {
@@ -218,28 +229,12 @@ namespace Koz.Windows.Forms
         }
 
         protected override void WndProc(ref Message m) {
-
+            //MessageMonitor.Enter<EditMessage>(ref m);
             switch (m.Msg) {
 
                 case NativeMethods.EM_SETSEL:
-                case NativeMethods.WM_HSCROLL:
-                case NativeMethods.WM_VSCROLL:
-                case NativeMethods.WM_LBUTTONDBLCLK:
-                case NativeMethods.WM_SETTEXT:
-                case NativeMethods.WM_KEYDOWN:
-                case NativeMethods.WM_LBUTTONDOWN:
-                    LockWndProc(ref m);
-                    break;
-
-                case NativeMethods.WM_MOUSEMOVE:
-                    if (MouseIsDown) {
-                        LockBegin();
-                    }
+                    BeginUpdate();
                     base.WndProc(ref m);
-                    break;
-
-                case NativeMethods.WM_CHAR:
-                    WmChar(ref m);
                     break;
 
                 case NativeMethods.WM_SETFOCUS:
@@ -267,95 +262,7 @@ namespace Koz.Windows.Forms
                     base.WndProc(ref m);
                     break;
             }
-        }
-
-        int locCount = 0;
-
-        protected void LockBegin() {
-            if (locCount == 0) {
-                locCount++;
-                NativeMethods.LockWindowUpdate(new HandleRef(this, Handle));
-                BeginInvoke((Action)LockEnd);
-            }
-        }
-
-        private void LockEnd() {
-            LockEnd(null);
-        }
-
-        private void LockEnd(Rectangle? clip) {
-            if (locCount > 0) {
-                locCount = 0;
-                NativeMethods.LockWindowUpdate(new HandleRef(this, IntPtr.Zero));
-                if (clip.HasValue) {
-                    Refresh(clip.Value);
-                } else {
-                    Refresh();
-                }
-                if (Focused) {
-                    NativeMethods.HideCaret(new HandleRef(this, Handle));
-                    NativeMethods.ShowCaret(new HandleRef(this, Handle));
-                }
-            }
-        }
-
-
-        bool mouseIsOver = false;
-
-        protected bool MouseIsOver {
-            get {
-                return mouseIsOver;
-            }
-            set {
-                if (mouseIsOver != value) {
-                    mouseIsOver = value;
-                    Invalidate();
-                }
-            }
-        }
-
-        bool mouseIsDown = false;
-
-        protected bool MouseIsDown {
-            get {
-                return mouseIsDown;
-            }
-            set {
-                if (mouseIsDown != value) {
-                    mouseIsDown = value;
-                    Invalidate();
-                }
-            }
-        }
-
-        protected override void OnMouseDown(MouseEventArgs e) {
-            base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left) {
-                MouseIsDown = true;
-            }
-        }
-
-        protected override void OnMouseUp(MouseEventArgs mevent) {
-            base.OnMouseUp(mevent);
-            if (mevent.Button == MouseButtons.Left) {
-                MouseIsDown = false;
-            }
-        }
-
-        protected override void OnMouseCaptureChanged(EventArgs e) {
-            base.OnMouseCaptureChanged(e);
-            MouseIsDown = false;
-            MouseIsOver = false;
-        }
-
-        protected override void OnMouseEnter(EventArgs e) {
-            base.OnMouseEnter(e);
-            MouseIsOver = true;
-        }
-
-        protected override void OnMouseLeave(EventArgs e) {
-            base.OnMouseLeave(e);
-            MouseIsOver = false;
+            //MessageMonitor.Exit<EditMessage>(ref m);
         }
 
         private void WmSetFocus(ref Message m) {
@@ -404,32 +311,16 @@ namespace Koz.Windows.Forms
             int endLine = currentLine + 1 > lastIndex ? lastIndex : currentLine + 1;
             Point? endPt = GetFirstCharPositionFromLine(endLine);
             int bottom = (endPt.HasValue ? endPt.Value.Y : 0);
-            bottom += FontAverageSize.Height;
+            bottom += supporter.FontAverageSize.Height;
             return Rectangle.FromLTRB(ClientRectangle.Left, top, ClientRectangle.Right, bottom);
-        }
-
-        private void WmChar(ref Message m) {
-            GetSelect(out int start, out int end);
-            if (end - start > 0) {
-                LockWndProc(ref m);
-            } else {
-                Rectangle clip = GetCaretClip();
-                LockWndProc(ref m);
-                char c = (char)m.WParam.ToInt32();
-                if (TextEditorRenderer.Markers.ContainsKey(c)) {
-                    LockEnd(clip);
-                }
-            }
-        }
-
-        private void LockWndProc(ref Message m) {
-            LockBegin();
-            base.WndProc(ref m);
         }
 
         private void WmSetFont(ref Message m) {
             base.WndProc(ref m);
             InitializeHandle(m.HWnd);
+            if (Focused) {
+                ShowCaret();
+            }
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
@@ -608,7 +499,7 @@ namespace Koz.Windows.Forms
             if (pt == NativeMethods.INVALID_HANDLE_VALUE) {
                 return null;
             }
-            return new Point(NativeMethods.Util.SignedLOWORD(pt), 
+            return new Point(NativeMethods.Util.SignedLOWORD(pt),
                             NativeMethods.Util.SignedHIWORD(pt));
         }
 
@@ -626,30 +517,19 @@ namespace Koz.Windows.Forms
         // プロパティ
         // -------------------------------------------------------------------------------
 
-        private static class Category
-        {
-            public const string Marker = "マーカー設定";
-            public const string Editor = "エディタ拡張";
-            public const string Caret = "キャレット設定";
-        }
-
-        private static class ObsoleteMessage
-        {
-            public const string CannotChangeProperty = "プロパティを変更できません";
-        }
-
-        private Color _BackColor = Color.Empty;
-
+        // -------------------------------------------------------------------------------
+        // BackColor プロパティ
+        // -------------------------------------------------------------------------------
         public override Color BackColor {
             get {
-                if (_BackColor.IsEmpty) {
+                if (backColor.IsEmpty) {
                     return SystemColors.Window;
                 }
                 return base.BackColor;
             }
             set {
                 base.BackColor = value;
-                _BackColor = value;
+                backColor = value;
             }
         }
 
@@ -657,6 +537,9 @@ namespace Koz.Windows.Forms
             BackColor = Color.Empty;
         }
 
+        // -------------------------------------------------------------------------------
+        // DefaultCursor プロパティ
+        // -------------------------------------------------------------------------------
         protected override Cursor DefaultCursor {
             get {
                 return Cursors.IBeam;
@@ -666,10 +549,6 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // MarkerColor プロパティ
         // -------------------------------------------------------------------------------
-        private static readonly object EventMarkerColorChanged = new object();
-        public readonly Color DefaultMarkerColor = Color.Green;
-        private Color _MarkerColor = Color.Empty;
-
         /// <summary>
         /// マーカーの色を取得または設定します。
         /// </summary>
@@ -677,14 +556,14 @@ namespace Koz.Windows.Forms
         [Category(Category.Marker)]
         public Color MarkerColor {
             get {
-                if (_MarkerColor.IsEmpty) {
+                if (markerColor.IsEmpty) {
                     return DefaultMarkerColor;
                 }
-                return _MarkerColor;
+                return markerColor;
             }
             set {
                 if (MarkerColor != value) {
-                    _MarkerColor = value;
+                    markerColor = value;
                     if (IsHandleCreated) {
                         Invalidate();
                     }
@@ -726,15 +605,12 @@ namespace Koz.Windows.Forms
         /// MarkerColor の値が変更されているかを取得します。
         /// </summary>
         internal bool ShouldSerializeMarkerColor() {
-            return _MarkerColor != Color.Empty;
+            return markerColor != Color.Empty;
         }
 
         // -------------------------------------------------------------------------------
         // ShowMarker プロパティ
         // -------------------------------------------------------------------------------
-        private static readonly object EventShowMarkerChanged = new object();
-        private bool _ShowMarker = true;
-
         /// <summary>
         /// マーカーを表示するかどうかを取得または設定します。
         /// </summary>
@@ -743,11 +619,11 @@ namespace Koz.Windows.Forms
         [DefaultValue(true)]
         public bool ShowMarker {
             get {
-                return _ShowMarker;
+                return showMarker;
             }
             set {
                 if (ShowMarker != value) {
-                    _ShowMarker = value;
+                    showMarker = value;
                     if (IsHandleCreated) {
                         Invalidate();
                     }
@@ -781,9 +657,6 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // TabWidth プロパティ
         // -------------------------------------------------------------------------------
-        private static readonly object EventTabWidthChanged = new object();
-        private int _TabWidth = 4;
-
         /// <summary>
         /// タブ幅(文字数)を取得または設定します。
         /// </summary>
@@ -792,14 +665,14 @@ namespace Koz.Windows.Forms
         [DefaultValue(4)]
         public int TabWidth {
             get {
-                return _TabWidth;
+                return tabWidth;
             }
             set {
                 if (value < 0) {
                     throw new ArgumentOutOfRangeException();
                 }
                 if (TabWidth != value) {
-                    _TabWidth = value;
+                    tabWidth = value;
                     if (IsHandleCreated) {
                         InitializeHandle(Handle);
                     }
@@ -833,10 +706,6 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // WrapMode プロパティ
         // -------------------------------------------------------------------------------
-        public const WrapMode DefaultWrapMode = WrapMode.NoWrap;
-        private static readonly object EventWrapModeChanged = new object();
-        private WrapMode _WrapMode = DefaultWrapMode;
-
         /// <summary>
         /// 複数行の場合の折り返しルールを取得または設定します。
         /// </summary>
@@ -845,11 +714,11 @@ namespace Koz.Windows.Forms
         [Category(Category.Editor)]
         public WrapMode WrapMode {
             get {
-                return _WrapMode;
+                return wrapMode;
             }
             set {
-                if (_WrapMode != value) {
-                    _WrapMode = value;
+                if (wrapMode != value) {
+                    wrapMode = value;
                     if (IsHandleCreated) {
                         RecreateHandle();
                         Invalidate();
@@ -884,22 +753,19 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // CaretWidth プロパティ
         // -------------------------------------------------------------------------------
-        private static readonly object EventCaretWidthChanged = new object();
-        private int _CaretWidth = 2;
-
         /// <summary>
         /// キャレットの幅を取得または設定します。
         /// </summary>
         [Description("キャレットの幅を取得または設定します。")]
         [Category(Category.Caret)]
-        [DefaultValue(2)]
+        [DefaultValue(DefaultCaretWidth)]
         public int CaretWidth {
             get {
-                return _CaretWidth;
+                return caretWidth;
             }
             set {
-                if (_CaretWidth != value) {
-                    _CaretWidth = value;
+                if (caretWidth != value) {
+                    caretWidth = value;
                     if (IsHandleCreated && Focused) {
                         ShowCaret();
                     }
@@ -933,25 +799,21 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // CaretColor プロパティ
         // -------------------------------------------------------------------------------
-        private object EventCaretColorChanged = new object();
-        private Color DefaultCaretColor = Color.Black;
-        private Color _CaretColor = Color.Empty;
-
         /// <summary>
-        /// キャレットの幅を取得または設定します。
+        /// キャレットの色を取得または設定します。
         /// </summary>
-        [Description("キャレットの幅を取得または設定します。")]
+        [Description("キャレットの色を取得または設定します。")]
         [Category(Category.Caret)]
         public Color CaretColor {
             get {
-                if (_CaretColor.IsEmpty) {
+                if (caretColor.IsEmpty) {
                     return DefaultCaretColor;
                 }
-                return _CaretColor;
+                return caretColor;
             }
             set {
-                if (_CaretColor != value) {
-                    _CaretColor = value;
+                if (caretColor != value) {
+                    caretColor = value;
                     if (IsHandleCreated && Focused) {
                         ShowCaret();
                     }
@@ -993,13 +855,12 @@ namespace Koz.Windows.Forms
         /// CaretColor の値が変更されているかを取得します。
         /// </summary>
         internal bool ShouldSerializeCaretColor() {
-            return !_CaretColor.IsEmpty;
+            return !caretColor.IsEmpty;
         }
 
         // -------------------------------------------------------------------------------
         // WordBreak イベント
         // -------------------------------------------------------------------------------
-        private object EventWordBreak = new object();
 
         void IWrapModeControl.WordBreakCallback(WordBreakEventArgs e) {
             OnWordBreak(e);
@@ -1009,7 +870,7 @@ namespace Koz.Windows.Forms
         /// WordBreak イベントを発生させます。
         /// </summary>
         protected virtual void OnWordBreak(WordBreakEventArgs e) {
-            e.Result = WrapModeController.DefaultWordBreakProc(e);
+            e.Result = wrapModeController.DefaultWordBreakProc(e);
             var eh = Events[EventCaretColorChanged] as EventHandler<WordBreakEventArgs>;
             if (eh != null) {
                 eh(this, e);
@@ -1031,22 +892,19 @@ namespace Koz.Windows.Forms
         // -------------------------------------------------------------------------------
         // BorderStyle プロパティ
         // -------------------------------------------------------------------------------
-        private object EventBorderStyle = new object();
-        private BorderStyle _BorderStyle = BorderStyle.Fixed3D;
-
         /// <summary>
         /// コントロールの罫線の表示方法を取得または設定します。
         /// </summary>
         [Description("コントロールの罫線の表示方法を取得または設定します。")]
         [Category("TextBox")]
-        [DefaultValue(BorderStyle.Fixed3D)]
+        [DefaultValue(DefaultBorderStyle)]
         public BorderStyle BorderStyle {
             get {
-                return _BorderStyle;
+                return borderStyle;
             }
             set {
-                if (_BorderStyle != value) {
-                    _BorderStyle = value;
+                if (borderStyle != value) {
+                    borderStyle = value;
                     if (IsHandleCreated) {
                         RecreateHandle();
                     }
@@ -1071,10 +929,10 @@ namespace Koz.Windows.Forms
         /// </summary>
         public event EventHandler BorderStyleChanged {
             add {
-                Events.AddHandler(EventBorderStyle, value);
+                Events.AddHandler(EventBorderStyleChanged, value);
             }
             remove {
-                Events.RemoveHandler(EventBorderStyle, value);
+                Events.RemoveHandler(EventBorderStyleChanged, value);
             }
         }
 
