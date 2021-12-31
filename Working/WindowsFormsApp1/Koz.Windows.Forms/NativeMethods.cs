@@ -120,12 +120,24 @@ namespace Koz.Windows.Forms
             WM_UNDO = 0x0304;
 
         public const int
+            WM_CAPTURECHANGED = 0x0215,
             WM_PRINT = 0x0317,
             WM_PRINTCLIENT = 0x0318,
             WM_APPCOMMAND = 0x0319,
             WM_USER = 0x0400,
             WM_APP = 0x8000,
             WM_REFLECT = WM_USER + 0x1C00;
+
+        public const int
+            WM_IME_SETCONTEXT = 0x0281,
+            WM_IME_NOTIFY = 0x0282,
+            WM_IME_CONTROL = 0x0283,
+            WM_IME_COMPOSITIONFULL = 0x0284,
+            WM_IME_SELECT = 0x0285,
+            WM_IME_CHAR = 0x0286,
+            WM_IME_REQUEST = 0x0288,
+            WM_IME_KEYDOWN = 0x0290,
+            WM_IME_KEYUP = 0x0291;
 
         public const int
             WS_BORDER = 0x00800000,
@@ -148,6 +160,7 @@ namespace Koz.Windows.Forms
             WS_EX_LAYOUTRTL = 0x00400000,
             WS_EX_NOINHERITLAYOUT = 0x00100000;
 
+        // Edit メッセージ
         public const int
             EM_GETSEL = 0x00B0,
             EM_SETSEL = 0x00B1,
@@ -549,12 +562,6 @@ namespace Koz.Windows.Forms
 
         [DllImport(ExternDll.Gdi32)]
         public static extern int SetBkMode(HandleRef hdc, BkModeConstans iBkMode);
-
-        public enum BkModeConstans
-        {
-            Transparent = 1,
-            Opqque = 2,
-        }
 
         [DllImport(ExternDll.User32, CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(HandleRef hWnd, int msgId, IntPtr wParam, Delegate lParam);

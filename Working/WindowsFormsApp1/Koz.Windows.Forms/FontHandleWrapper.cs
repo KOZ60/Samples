@@ -22,7 +22,7 @@ namespace Koz.Windows.Forms
             Style = font.Style;
             Size = font.Size;
             Unit = font.Unit;
-            using (var wrapper = new GDIWrapper(handle, false)) {
+            using (var wrapper = new GdiGraphics(handle, false)) {
                 averageSize = wrapper.GetFontAverageSize();
             }
         }

@@ -106,7 +106,7 @@ namespace Koz.Windows.Forms
             int textLength = NativeMethods.lstrlen(text);
             if (textLength == 0) return;
 
-            using (var wrapper = new GDIWrapper(graphics.GetHdc(), false, owner.FontHandleWrapper.Handle, false)) {
+            using (var wrapper = new GdiGraphics(graphics.GetHdc(), false, owner.FontHandleWrapper.Handle, false)) {
 
                 fontSizeAverage = wrapper.GetFontAverageSize();
 
@@ -165,7 +165,7 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private unsafe void DrawLine(GDIWrapper wrapper, DrawRange drawRange, char* text) {
+        private unsafe void DrawLine(GdiGraphics wrapper, DrawRange drawRange, char* text) {
             Point pt = drawRange.Location;
             DrawMode? prevMode = null;
             var sb = new StringBuilder(drawRange.Length * 2);
@@ -205,7 +205,7 @@ namespace Koz.Windows.Forms
             return mode;
         }
 
-        private void DrawPart(GDIWrapper wrapper, DrawMode mode, Point pt, StringBuilder sb) {
+        private void DrawPart(GdiGraphics wrapper, DrawMode mode, Point pt, StringBuilder sb) {
             DrawColor drawColor = drawColors[mode];
             wrapper.SetColor(drawColor.Win32ForeColor, drawColor.Win32BackColor);
 
@@ -219,7 +219,7 @@ namespace Koz.Windows.Forms
             }
         }
 
-        private void DrawTabHighlight(GDIWrapper wrapper, Point pt) {
+        private void DrawTabHighlight(GdiGraphics wrapper, Point pt) {
             Point leftPt = owner.GetPositionFromCharIndex(0).Value;
             int X = pt.X - leftPt.X;
             int tabPixelWidth = fontSizeAverage.Width * owner.TabWidth;

@@ -45,10 +45,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BkModeConstans.cs" />
     <Compile Include="CaretBitmap.cs" />
     <Compile Include="FontHandleWrapper.cs" />
-    <Compile Include="GDIWrapper.cs" />
+    <Compile Include="GdiGraphics.cs" />
     <Compile Include="IWrapModeControl.cs" />
+    <Compile Include="Tools\EditMessage.cs" />
+    <Compile Include="Tools\MessageMonitor.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NativeWindowBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -60,6 +63,8 @@
     </Compile>
     <Compile Include="TextEditorRenderer.cs" />
     <Compile Include="LayoutUtils.cs" />
+    <Compile Include="Tools\OwnerDrawSupporter.cs" />
+    <Compile Include="Tools\WindowMessage.cs" />
     <Compile Include="WordBreakCharType.cs" />
     <Compile Include="WordBreakCode.cs" />
     <Compile Include="WordBreakEventArgs.cs" />

@@ -217,11 +217,7 @@ namespace Koz.Windows.Forms
             NativeMethods.ShowCaret(hwnd);
         }
 
-        //int count = 0;
-
         protected override void WndProc(ref Message m) {
-            //System.Diagnostics.Debug.Print("+{0} {1}", new string('-', count), m);
-            //count++;
 
             switch (m.Msg) {
 
@@ -230,25 +226,24 @@ namespace Koz.Windows.Forms
                 case NativeMethods.WM_VSCROLL:
                 case NativeMethods.WM_LBUTTONDBLCLK:
                 case NativeMethods.WM_SETTEXT:
-                    // 描画ロックして Invalidate
-                    LockWndProc(ref m);
-                    Invalidate(true);
-                    break;
-
-                case NativeMethods.WM_SETFOCUS:
-                    WmSetFocus(ref m);
-                    break;
-
                 case NativeMethods.WM_KEYDOWN:
-                    WmKeyDown(ref m);
+                case NativeMethods.WM_LBUTTONDOWN:
+                    LockWndProc(ref m);
+                    break;
+
+                case NativeMethods.WM_MOUSEMOVE:
+                    if (MouseIsDown) {
+                        LockBegin();
+                    }
+                    base.WndProc(ref m);
                     break;
 
                 case NativeMethods.WM_CHAR:
                     WmChar(ref m);
                     break;
 
-                case NativeMethods.WM_PASTE:
-                    WmPaste(ref m);
+                case NativeMethods.WM_SETFOCUS:
+                    WmSetFocus(ref m);
                     break;
 
                 case NativeMethods.WM_SETFONT:
@@ -270,34 +265,97 @@ namespace Koz.Windows.Forms
 
                 default:
                     base.WndProc(ref m);
-                    // マウス操作があったら Invalidate
-                    if (m.Msg >= NativeMethods.WM_MOUSEFIRST &&
-                        m.Msg <= NativeMethods.WM_MOUSELAST) {
-                        Invalidate();
-                    }
                     break;
             }
-            //count--;
-            //System.Diagnostics.Debug.Print(" {0} {1}", new string('-', count), m);
         }
 
-        private int lockCount = 0;
+        int locCount = 0;
 
-        public int LockWindow() {
-            if (lockCount == 0) {
+        protected void LockBegin() {
+            if (locCount == 0) {
+                locCount++;
                 NativeMethods.LockWindowUpdate(new HandleRef(this, Handle));
+                BeginInvoke((Action)LockEnd);
             }
-            lockCount += 1;
-            return lockCount;
         }
 
-        public int UnlockWindow() {
-            lockCount -= 1;
-            if (lockCount <= 0) {
-                NativeMethods.LockWindowUpdate(new HandleRef(null, IntPtr.Zero));
-                lockCount = 0;
+        private void LockEnd() {
+            LockEnd(null);
+        }
+
+        private void LockEnd(Rectangle? clip) {
+            if (locCount > 0) {
+                locCount = 0;
+                NativeMethods.LockWindowUpdate(new HandleRef(this, IntPtr.Zero));
+                if (clip.HasValue) {
+                    Refresh(clip.Value);
+                } else {
+                    Refresh();
+                }
+                if (Focused) {
+                    NativeMethods.HideCaret(new HandleRef(this, Handle));
+                    NativeMethods.ShowCaret(new HandleRef(this, Handle));
+                }
             }
-            return lockCount;
+        }
+
+
+        bool mouseIsOver = false;
+
+        protected bool MouseIsOver {
+            get {
+                return mouseIsOver;
+            }
+            set {
+                if (mouseIsOver != value) {
+                    mouseIsOver = value;
+                    Invalidate();
+                }
+            }
+        }
+
+        bool mouseIsDown = false;
+
+        protected bool MouseIsDown {
+            get {
+                return mouseIsDown;
+            }
+            set {
+                if (mouseIsDown != value) {
+                    mouseIsDown = value;
+                    Invalidate();
+                }
+            }
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left) {
+                MouseIsDown = true;
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs mevent) {
+            base.OnMouseUp(mevent);
+            if (mevent.Button == MouseButtons.Left) {
+                MouseIsDown = false;
+            }
+        }
+
+        protected override void OnMouseCaptureChanged(EventArgs e) {
+            base.OnMouseCaptureChanged(e);
+            MouseIsDown = false;
+            MouseIsOver = false;
+        }
+
+        protected override void OnMouseEnter(EventArgs e) {
+            base.OnMouseEnter(e);
+            MouseIsOver = true;
+        }
+
+        protected override void OnMouseLeave(EventArgs e) {
+            base.OnMouseLeave(e);
+            MouseIsOver = false;
         }
 
         private void WmSetFocus(ref Message m) {
@@ -332,28 +390,6 @@ namespace Koz.Windows.Forms
             m.Result = (IntPtr)(unchecked((int)(long)m.Result) | NativeMethods.DLGC_WANTTAB);
         }
 
-        private void LockWndProc(ref Message m) {
-            LockWindow();
-            base.WndProc(ref m);
-            UnlockWindow();
-        }
-
-        private void WmKeyDown(ref Message m) {
-            GetSelect(out int start, out int end);
-            if (end - start > 0) {
-                LockWndProc(ref m);
-                Invalidate();
-            } else {
-                Rectangle clip = GetCaretClip();
-                LockWndProc(ref m);
-                NativeMethods.Keystroke keystroke = NativeMethods.GetKeystroke(ref m);
-                if (keystroke.HasFlag(NativeMethods.Keystroke.KF_REPEAT)) {
-                    Refresh(clip);
-                } else {
-                    Invalidate(clip, true);
-                }
-            }
-        }
 
         // キャレットの上下１行をクリップする
         private Rectangle GetCaretClip() {
@@ -376,24 +412,19 @@ namespace Koz.Windows.Forms
             GetSelect(out int start, out int end);
             if (end - start > 0) {
                 LockWndProc(ref m);
-                Invalidate();
             } else {
                 Rectangle clip = GetCaretClip();
                 LockWndProc(ref m);
                 char c = (char)m.WParam.ToInt32();
                 if (TextEditorRenderer.Markers.ContainsKey(c)) {
-                    Refresh(clip);
-                } else {
-                    Invalidate(clip);
+                    LockEnd(clip);
                 }
             }
         }
 
-        private void WmPaste(ref Message m) {
-            if (Clipboard.ContainsText()) {
-                string str = Clipboard.GetText();
-                Paste(str);
-            }
+        private void LockWndProc(ref Message m) {
+            LockBegin();
+            base.WndProc(ref m);
         }
 
         private void WmSetFont(ref Message m) {

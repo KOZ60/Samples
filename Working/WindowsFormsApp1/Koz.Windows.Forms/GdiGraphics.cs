@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Koz.Windows.Forms
 {
-    public class GDIWrapper : IDisposable
+    public class GdiGraphics : IDisposable
     {
         private HandleRef hdc;
         private HandleRef fontHandle;
@@ -13,15 +13,15 @@ namespace Koz.Windows.Forms
         private bool deleteFont;
         private HandleRef oldFont;
 
-        public GDIWrapper(Font font) : this(font.ToHfont(), true) { }
+        public GdiGraphics(Font font) : this(font.ToHfont(), true) { }
 
-        public GDIWrapper(IntPtr fontHandle, bool deleteFont) 
+        public GdiGraphics(IntPtr fontHandle, bool deleteFont) 
             : this(IntPtr.Zero, true, fontHandle, deleteFont) { }
 
-        public GDIWrapper(IntPtr hdc, Font font)
+        public GdiGraphics(IntPtr hdc, Font font)
             : this(hdc, false, font.ToHfont(), true) { }
 
-        public GDIWrapper(IntPtr hdc, bool deleteHdc, IntPtr fontHandle, bool deleteFont) {
+        public GdiGraphics(IntPtr hdc, bool deleteHdc, IntPtr fontHandle, bool deleteFont) {
             if (hdc == IntPtr.Zero) {
                 hdc = NativeMethods.CreateCompatibleDC(new HandleRef(this, IntPtr.Zero));
                 deleteHdc = true;
@@ -74,11 +74,19 @@ namespace Koz.Windows.Forms
             NativeMethods.TextOut(hdc, x, y, str, str.Length);
         }
 
+        public void SetBkMode(BkModeConstans bkMode) {
+            NativeMethods.SetBkMode(hdc, bkMode);
+        }
+
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing) {
+        private void DisposeCaller(bool disposing) {
             if (disposedValue) return;
             disposedValue = true;
+            Dispose(disposing);
+        }
+
+        protected virtual void Dispose(bool disposing) {
             NativeMethods.SelectObject(hdc, oldFont);
             if (deleteFont) {
                 NativeMethods.DeleteObject(fontHandle);
@@ -88,12 +96,12 @@ namespace Koz.Windows.Forms
             }
         }
 
-        ~GDIWrapper() {
-            Dispose(false);
+        ~GdiGraphics() {
+            DisposeCaller(false);
         }
 
         public void Dispose() {
-            Dispose(disposing: true);
+            DisposeCaller(disposing: true);
             GC.SuppressFinalize(this);
         }
     }
