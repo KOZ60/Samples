@@ -1,10 +1,9 @@
 ﻿namespace CustomTextBox
 {
-    public partial class Form1 : BaseForm
+    public partial class Form2 : BaseForm
     {
-        public Form1() {
+        public Form2() {
             InitializeComponent();
         }
-
     }
 }

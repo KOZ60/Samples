@@ -19,6 +19,7 @@
         public int DecimalLength { get; set; } = 3;
 
         // フォーカスを失ったとき表示する際の書式
+        [DefaultValue("#,##0.000")]
         public string FormatString { get; set; } = "#,##0.000";
 
         // 値を編集する際に発生するイベント。編集後の文字列をカスタマイズすることができます。
