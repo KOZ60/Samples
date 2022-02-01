@@ -173,7 +173,11 @@ namespace CustomTextBox
 
                 case NativeMethods.WM_PASTE:
                     if (Clipboard.ContainsText()) {
-                        OnPaste(RemoveControlChar(Clipboard.GetText()));
+                        string pasteText = Clipboard.GetText();
+                        if (!Multiline) {
+                            pasteText = RemoveControlChar(pasteText);
+                        }
+                        OnPaste(pasteText);
                     }
                     break;
 
