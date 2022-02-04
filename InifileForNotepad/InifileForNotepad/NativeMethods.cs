@@ -132,7 +132,7 @@
         [DllImport(ICU, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr ucsdet_getName(IntPtr ucsd, ref UErrorCode status);
 
-        public static string DetectCharacterSetCUI(byte[] buffer)
+        public static string DetectCharacterSetICU(byte[] buffer)
         {
             UErrorCode error = UErrorCode.U_ZERO_ERROR;
 

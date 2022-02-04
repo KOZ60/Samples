@@ -88,7 +88,7 @@
         {
             // icu.dll が存在していれば使用する
             if(NativeMethods.DetectICU()) {
-                var name = NativeMethods.DetectCharacterSetCUI(bytes);
+                var name = NativeMethods.DetectCharacterSetICU(bytes);
                 if (name == "UTF-8") {
                     return CharacterSet.UTF8N;
                 }
