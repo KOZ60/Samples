@@ -32,7 +32,7 @@ namespace Calculator
 
         public Form1() {
             InitializeComponent();
-            foreach (var button in Controls.OfType<ButtonEx>()) {
+            foreach (var button in Controls.OfType<NoFocusButton>()) {
                 button.Click += Button_Click;
             }
             label1.Text = "0";
@@ -40,7 +40,7 @@ namespace Calculator
         }
 
         private void Button_Click(object? sender, EventArgs e) {
-            var button = sender as ButtonEx;
+            var button = sender as NoFocusButton;
             if (button == null) return;
             ButtonClick(button.Text);
         }

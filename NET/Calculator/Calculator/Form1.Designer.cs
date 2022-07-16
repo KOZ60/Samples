@@ -25,24 +25,24 @@
         ///  the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.button1 = new Calculator.ButtonEx();
-            this.button2 = new Calculator.ButtonEx();
-            this.button3 = new Calculator.ButtonEx();
-            this.button4 = new Calculator.ButtonEx();
-            this.button5 = new Calculator.ButtonEx();
-            this.button6 = new Calculator.ButtonEx();
-            this.button7 = new Calculator.ButtonEx();
-            this.button8 = new Calculator.ButtonEx();
-            this.button9 = new Calculator.ButtonEx();
-            this.button10 = new Calculator.ButtonEx();
-            this.button11 = new Calculator.ButtonEx();
-            this.button12 = new Calculator.ButtonEx();
-            this.button13 = new Calculator.ButtonEx();
-            this.button14 = new Calculator.ButtonEx();
-            this.button15 = new Calculator.ButtonEx();
-            this.button16 = new Calculator.ButtonEx();
-            this.label1 = new LabelEx();
-            this.buttonEx1 = new Calculator.ButtonEx();
+            this.button1 = new Calculator.NoFocusButton();
+            this.button2 = new Calculator.NoFocusButton();
+            this.button3 = new Calculator.NoFocusButton();
+            this.button4 = new Calculator.NoFocusButton();
+            this.button5 = new Calculator.NoFocusButton();
+            this.button6 = new Calculator.NoFocusButton();
+            this.button7 = new Calculator.NoFocusButton();
+            this.button8 = new Calculator.NoFocusButton();
+            this.button9 = new Calculator.NoFocusButton();
+            this.button10 = new Calculator.NoFocusButton();
+            this.button11 = new Calculator.NoFocusButton();
+            this.button12 = new Calculator.NoFocusButton();
+            this.button13 = new Calculator.NoFocusButton();
+            this.button14 = new Calculator.NoFocusButton();
+            this.button15 = new Calculator.NoFocusButton();
+            this.button16 = new Calculator.NoFocusButton();
+            this.label1 = new ResultLabel();
+            this.buttonEx1 = new Calculator.NoFocusButton();
             this.SuspendLayout();
             // 
             // button1
@@ -260,23 +260,23 @@
 
         #endregion
 
-        private ButtonEx button1;
-        private ButtonEx button2;
-        private ButtonEx button3;
-        private ButtonEx button4;
-        private ButtonEx button5;
-        private ButtonEx button6;
-        private ButtonEx button7;
-        private ButtonEx button8;
-        private ButtonEx button9;
-        private ButtonEx button10;
-        private ButtonEx button11;
-        private ButtonEx button12;
-        private ButtonEx button13;
-        private ButtonEx button14;
-        private ButtonEx button15;
-        private ButtonEx button16;
-        private LabelEx label1;
-        private ButtonEx buttonEx1;
+        private NoFocusButton button1;
+        private NoFocusButton button2;
+        private NoFocusButton button3;
+        private NoFocusButton button4;
+        private NoFocusButton button5;
+        private NoFocusButton button6;
+        private NoFocusButton button7;
+        private NoFocusButton button8;
+        private NoFocusButton button9;
+        private NoFocusButton button10;
+        private NoFocusButton button11;
+        private NoFocusButton button12;
+        private NoFocusButton button13;
+        private NoFocusButton button14;
+        private NoFocusButton button15;
+        private NoFocusButton button16;
+        private ResultLabel label1;
+        private NoFocusButton buttonEx1;
     }
 }

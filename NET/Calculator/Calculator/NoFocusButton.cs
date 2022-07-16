@@ -1,8 +1,8 @@
 ﻿namespace Calculator
 {
-    internal class ButtonEx : Button
+    internal class NoFocusButton : Button
     {
-        public ButtonEx() {
+        public NoFocusButton() {
             SetStyle(ControlStyles.Selectable, false);
         }
     }
