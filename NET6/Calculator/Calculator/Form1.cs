@@ -27,7 +27,7 @@ namespace Calculator
             }
         }
         
-        private string Operator = string.Empty;
+        private char Operator = char.MinValue;
         private string Number = string.Empty;
 
         public Form1() {
@@ -42,39 +42,23 @@ namespace Calculator
         private void Button_Click(object? sender, EventArgs e) {
             var button = sender as NoFocusButton;
             if (button == null) return;
-            ButtonClick(button.Text);
+            ButtonClick(button.CharValue);
         }
 
-        private void ButtonClick(string caption) {
-            try {
-                switch (caption) {
-                    case ".":
-                    case "0":
-                    case "1":
-                    case "2":
-                    case "3":
-                    case "4":
-                    case "5":
-                    case "6":
-                    case "7":
-                    case "8":
-                    case "9":
-                        NumButtonClick(caption);
-                        break;
-                    case "/":
-                    case "*":
-                    case "-":
-                    case "+":
-                        CalcButtonClick(caption);
-                        break;
-                    case "=":
-                        EqualButtonClick();
-                        break;
-                    case "C":
-                        ClearButtonClick();
-                        break;
-                }
+        private readonly HashSet<char> NumChars = new HashSet<char>(".0123456789");
+        private readonly HashSet<char> CalcChars = new HashSet<char>("+-*/");
 
+        private void ButtonClick(char caption) {
+            try {
+                if (NumChars.Contains(caption)) {
+                    NumButtonClick(caption);
+                } else if (CalcChars.Contains(caption)) {
+                    CalcButtonClick(caption);
+                } else if (caption == '=') {
+                    EqualButtonClick();
+                } else if (caption == 'C') {
+                    ClearButtonClick();
+                }
             } catch (Exception ex) {
                 label1.Text = "Error!";
                 label1.ForeColor = Color.Red;
@@ -87,7 +71,7 @@ namespace Calculator
             Clear();
         }
 
-        private void NumButtonClick(string caption) {
+        private void NumButtonClick(char caption) {
             switch (MyStatus) {
                 case Status.S1:
                     EditLabel(label1.Text, caption);
@@ -109,7 +93,7 @@ namespace Calculator
             }
         }
 
-        private void CalcButtonClick(string caption) {
+        private void CalcButtonClick(char caption) {
             switch (MyStatus) {
                 case Status.S1:
                     SaveCaption(caption);
@@ -139,6 +123,8 @@ namespace Calculator
                     break;
 
                 case Status.S2:
+                    Calcuration();
+                    MyStatus = Status.S4;
                     break;
 
                 case Status.S3:
@@ -155,18 +141,18 @@ namespace Calculator
             label1.Text = "0";
             label1.ForeColor = SystemColors.ControlText;
             MyStatus = Status.S1;
-            Operator = string.Empty;
+            Operator = char.MinValue;
             Number = string.Empty;
         }
 
-        private void EditLabel(string labelText, string caption) {
+        private void EditLabel(string labelText, char caption) {
             switch (caption) {
-                case ".":
+                case '.':
                     if (!labelText.Contains('.')) {
                         labelText += ".";
                     }
                     break;
-                case "0":
+                case '0':
                     if (labelText != "0") {
                         labelText += "0";
                     }
@@ -175,14 +161,14 @@ namespace Calculator
                     if (labelText != "0") {
                         labelText += caption;
                     } else {
-                        labelText = caption;
+                        labelText = caption.ToString();
                     }
                     break;
             }
             label1.Text = labelText;
         }
 
-        private void SaveCaption(string caption) {
+        private void SaveCaption(char caption) {
             Operator = caption;
             Number = label1.Text;
         }
@@ -192,28 +178,28 @@ namespace Calculator
             decimal num2 = Convert.ToDecimal(label1.Text);
             decimal result = 0;
             switch (Operator) {
-                case "/":
+                case '/':
                     result = num1 / num2;
                     break;
-                case "*":
+                case '*':
                     result = num1 * num2;
                     break;
-                case "-":
+                case '-':
                     result = num1 - num2;
                     break;
-                case "+":
+                case '+':
                     result = num1 + num2;
                     break;
             }
-            label1.Text = string.Format("{0:#,##0.########}", result);
+            label1.Text = string.Format("{0:G28}", result);
         }
 
         private void Form1_KeyPress(object sender, KeyPressEventArgs e) {
-            string caption;
+            char caption;
             if (e.KeyChar == 0x0d) {
-                caption = "=";
+                caption = '=';
             } else {
-                caption = e.KeyChar.ToString();
+                caption = e.KeyChar;
             }
             ButtonClick(caption);
         }
