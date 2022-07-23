@@ -1,6 +1,6 @@
 namespace Calculator
 {
-    public partial class Form1 : Form
+    public partial class CalcForm : Form
     {
         private enum Status
         {
@@ -23,16 +23,21 @@ namespace Calculator
             }
             set {
                 _MyStatus = value;
-                Text = String.Format("電卓({0})", value); // デバッグ用
+#if DEBUG
+                Text = string.Format("電卓({0})", value);
+#endif
             }
         }
         
         private char Operator = char.MinValue;
-        private string Number = string.Empty;
+        private string Number1 = string.Empty;
 
-        public Form1() {
+        private string PrevNumber1 = string.Empty;
+        private string PrevNumber2 = string.Empty;
+
+        public CalcForm() {
             InitializeComponent();
-            foreach (var button in Controls.OfType<NoFocusButton>()) {
+            foreach (var button in Controls.OfType<CalcButton>()) {
                 button.Click += Button_Click;
             }
             label1.Text = "0";
@@ -40,9 +45,9 @@ namespace Calculator
         }
 
         private void Button_Click(object? sender, EventArgs e) {
-            var button = sender as NoFocusButton;
+            var button = sender as CalcButton;
             if (button == null) return;
-            ButtonClick(button.CharValue);
+            ButtonClick(button.Caption);
         }
 
         private readonly HashSet<char> NumChars = new HashSet<char>(".0123456789");
@@ -56,6 +61,12 @@ namespace Calculator
                     CalcButtonClick(caption);
                 } else if (caption == '=') {
                     EqualButtonClick();
+                } else if (caption == 'R') {
+                    RootButtonClick();
+                } else if (caption == 'P') {
+                    PercentButtonClick();
+                } else if (caption == 'I') {
+                    InvertButtonClick();
                 } else if (caption == 'C') {
                     ClearButtonClick();
                 }
@@ -69,6 +80,77 @@ namespace Calculator
 
         private void ClearButtonClick() {
             Clear();
+        }
+
+        private void RootButtonClick() {
+            switch (MyStatus) {
+                case Status.S5:
+                    break;
+                default:
+                    double d = double.Parse(label1.Text);
+                    label1.Text = Math.Sqrt(d).ToString();
+                    break;
+            }
+        }
+
+        private void PercentButtonClick() {
+            switch (MyStatus) {
+                case Status.S1:
+                case Status.S2:
+                    break;
+                case Status.S3:
+                    PercentCalcuration();
+                    MyStatus = Status.S4;
+                    break;
+
+                case Status.S4:
+                    // 数値をバックアップから戻して計算
+                    Number1 = PrevNumber1;
+                    label1.Text = PrevNumber2;
+                    PercentCalcuration();
+                    break;
+
+                case Status.S5:
+                    break;
+            }
+        }
+
+        private void PercentCalcuration() {
+            string prevText;
+            decimal tmp;
+
+            switch (Operator) {
+                case '/':
+                case '*':
+                    // 除算/乗算のときは数値２を1/100倍して計算
+                    prevText = label1.Text;
+                    tmp = Convert.ToDecimal(prevText) / 100;
+                    label1.Text = tmp.ToString();
+                    Calcuration();
+                    PrevNumber2 = prevText;
+                    break;
+                case '+':
+                case '-':
+                    // 加算/減算のときは数値１の数値２％を求めて数値２として計算
+                    prevText = label1.Text;
+                    tmp = Convert.ToDecimal(Number1) / 100 * Convert.ToDecimal(label1.Text);
+                    label1.Text = tmp.ToString();
+                    Calcuration();
+                    PrevNumber2 = prevText;
+                    break;
+            }
+        }
+
+
+        private void InvertButtonClick() {
+            switch (MyStatus) {
+                case Status.S5:
+                    break;
+                default:
+                    decimal d = decimal.Parse(label1.Text);
+                    label1.Text = d.ToString();
+                    break;
+            }
         }
 
         private void NumButtonClick(char caption) {
@@ -142,7 +224,7 @@ namespace Calculator
             label1.ForeColor = SystemColors.ControlText;
             MyStatus = Status.S1;
             Operator = char.MinValue;
-            Number = string.Empty;
+            Number1 = string.Empty;
         }
 
         private void EditLabel(string labelText, char caption) {
@@ -170,11 +252,13 @@ namespace Calculator
 
         private void SaveCaption(char caption) {
             Operator = caption;
-            Number = label1.Text;
+            Number1 = label1.Text;
         }
 
         private void Calcuration() {
-            decimal num1 = Convert.ToDecimal(Number);
+            PrevNumber1 = Number1;
+            PrevNumber2 = label1.Text;
+            decimal num1 = Convert.ToDecimal(Number1);
             decimal num2 = Convert.ToDecimal(label1.Text);
             decimal result = 0;
             switch (Operator) {
