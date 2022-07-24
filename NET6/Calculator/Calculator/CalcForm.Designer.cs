@@ -51,6 +51,7 @@
             // button1
             // 
             this.button1.Caption = '7';
+            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button1.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button1.Location = new System.Drawing.Point(62, 67);
             this.button1.Name = "button1";
@@ -62,6 +63,7 @@
             // button2
             // 
             this.button2.Caption = '8';
+            this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button2.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button2.Location = new System.Drawing.Point(121, 67);
             this.button2.Name = "button2";
@@ -73,6 +75,7 @@
             // button3
             // 
             this.button3.Caption = '9';
+            this.button3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button3.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button3.Location = new System.Drawing.Point(180, 67);
             this.button3.Name = "button3";
@@ -84,6 +87,7 @@
             // button4
             // 
             this.button4.Caption = '4';
+            this.button4.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button4.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button4.Location = new System.Drawing.Point(62, 127);
             this.button4.Name = "button4";
@@ -95,6 +99,7 @@
             // button5
             // 
             this.button5.Caption = '5';
+            this.button5.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button5.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button5.Location = new System.Drawing.Point(121, 127);
             this.button5.Name = "button5";
@@ -106,6 +111,7 @@
             // button6
             // 
             this.button6.Caption = '6';
+            this.button6.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button6.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button6.Location = new System.Drawing.Point(180, 127);
             this.button6.Name = "button6";
@@ -117,6 +123,7 @@
             // button7
             // 
             this.button7.Caption = '1';
+            this.button7.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button7.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button7.Location = new System.Drawing.Point(62, 187);
             this.button7.Name = "button7";
@@ -128,6 +135,7 @@
             // button8
             // 
             this.button8.Caption = '2';
+            this.button8.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button8.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button8.Location = new System.Drawing.Point(121, 187);
             this.button8.Name = "button8";
@@ -139,6 +147,7 @@
             // button9
             // 
             this.button9.Caption = '3';
+            this.button9.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button9.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button9.Location = new System.Drawing.Point(180, 187);
             this.button9.Name = "button9";
@@ -150,6 +159,7 @@
             // button10
             // 
             this.button10.Caption = '/';
+            this.button10.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button10.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button10.Location = new System.Drawing.Point(239, 67);
             this.button10.Name = "button10";
@@ -161,6 +171,7 @@
             // button11
             // 
             this.button11.Caption = '*';
+            this.button11.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button11.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button11.Location = new System.Drawing.Point(239, 127);
             this.button11.Name = "button11";
@@ -172,6 +183,7 @@
             // button12
             // 
             this.button12.Caption = '-';
+            this.button12.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button12.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button12.Location = new System.Drawing.Point(239, 187);
             this.button12.Name = "button12";
@@ -183,6 +195,7 @@
             // button13
             // 
             this.button13.Caption = '+';
+            this.button13.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button13.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button13.Location = new System.Drawing.Point(239, 247);
             this.button13.Name = "button13";
@@ -194,6 +207,7 @@
             // button14
             // 
             this.button14.Caption = '0';
+            this.button14.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button14.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button14.Location = new System.Drawing.Point(62, 247);
             this.button14.Name = "button14";
@@ -205,6 +219,7 @@
             // button15
             // 
             this.button15.Caption = '.';
+            this.button15.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button15.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button15.Location = new System.Drawing.Point(121, 247);
             this.button15.Name = "button15";
@@ -216,6 +231,7 @@
             // button16
             // 
             this.button16.Caption = '=';
+            this.button16.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button16.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button16.Location = new System.Drawing.Point(180, 247);
             this.button16.Name = "button16";
@@ -229,6 +245,7 @@
             this.label1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label1.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label1.Location = new System.Drawing.Point(3, 9);
+            this.label1.MaxNumberOfDigits = 14;
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(290, 51);
             this.label1.TabIndex = 16;
@@ -237,19 +254,23 @@
             // 
             // calcButton1
             // 
+            this.calcButton1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
             this.calcButton1.Caption = 'C';
+            this.calcButton1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.calcButton1.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.calcButton1.ForeColor = System.Drawing.Color.White;
             this.calcButton1.Location = new System.Drawing.Point(3, 247);
             this.calcButton1.Name = "calcButton1";
             this.calcButton1.Size = new System.Drawing.Size(54, 54);
             this.calcButton1.TabIndex = 24;
             this.calcButton1.Text = "C";
-            this.calcButton1.UseVisualStyleBackColor = true;
+            this.calcButton1.UseVisualStyleBackColor = false;
             // 
             // calcButton2
             // 
             this.calcButton2.Caption = 'I';
-            this.calcButton2.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.calcButton2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.calcButton2.Font = new System.Drawing.Font("ＭＳ Ｐゴシック", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.calcButton2.Location = new System.Drawing.Point(3, 187);
             this.calcButton2.Name = "calcButton2";
             this.calcButton2.Size = new System.Drawing.Size(54, 54);
@@ -260,6 +281,7 @@
             // calcButton3
             // 
             this.calcButton3.Caption = 'P';
+            this.calcButton3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.calcButton3.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.calcButton3.Location = new System.Drawing.Point(3, 127);
             this.calcButton3.Name = "calcButton3";
@@ -271,6 +293,7 @@
             // calcButton4
             // 
             this.calcButton4.Caption = 'R';
+            this.calcButton4.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.calcButton4.Font = new System.Drawing.Font("ＭＳ ゴシック", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.calcButton4.Location = new System.Drawing.Point(3, 67);
             this.calcButton4.Name = "calcButton4";

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Calculator
 {
     public partial class CalcForm : Form
@@ -28,12 +30,9 @@ namespace Calculator
 #endif
             }
         }
-        
+
         private char Operator = char.MinValue;
         private string Number1 = string.Empty;
-
-        private string PrevNumber1 = string.Empty;
-        private string PrevNumber2 = string.Empty;
 
         public CalcForm() {
             InitializeComponent();
@@ -41,6 +40,7 @@ namespace Calculator
                 button.Click += Button_Click;
             }
             label1.Text = "0";
+            label1.Paint += Label1_Paint;
             MyStatus = Status.S1;
         }
 
@@ -70,11 +70,9 @@ namespace Calculator
                 } else if (caption == 'C') {
                     ClearButtonClick();
                 }
-            } catch (Exception ex) {
-                label1.Text = "Error!";
-                label1.ForeColor = Color.Red;
+            } catch (Exception) {
+                IsError = true;
                 MyStatus = Status.S5;
-                MessageBox.Show(ex.Message);
             }
         }
 
@@ -104,10 +102,6 @@ namespace Calculator
                     break;
 
                 case Status.S4:
-                    // êîílÇÉoÉbÉNÉAÉbÉvÇ©ÇÁñﬂÇµÇƒåvéZ
-                    Number1 = PrevNumber1;
-                    label1.Text = PrevNumber2;
-                    PercentCalcuration();
                     break;
 
                 case Status.S5:
@@ -116,27 +110,22 @@ namespace Calculator
         }
 
         private void PercentCalcuration() {
-            string prevText;
             decimal tmp;
 
             switch (Operator) {
                 case '/':
                 case '*':
                     // èúéZ/èÊéZÇÃÇ∆Ç´ÇÕêîílÇQÇ1/100î{ÇµÇƒåvéZ
-                    prevText = label1.Text;
-                    tmp = Convert.ToDecimal(prevText) / 100;
+                    tmp = Convert.ToDecimal(label1.Text) / 100;
                     label1.Text = tmp.ToString();
                     Calcuration();
-                    PrevNumber2 = prevText;
                     break;
                 case '+':
                 case '-':
                     // â¡éZ/å∏éZÇÃÇ∆Ç´ÇÕêîílÇPÇÃêîílÇQÅìÇãÅÇﬂÇƒêîílÇQÇ∆ÇµÇƒåvéZ
-                    prevText = label1.Text;
                     tmp = Convert.ToDecimal(Number1) / 100 * Convert.ToDecimal(label1.Text);
                     label1.Text = tmp.ToString();
                     Calcuration();
-                    PrevNumber2 = prevText;
                     break;
             }
         }
@@ -147,8 +136,8 @@ namespace Calculator
                 case Status.S5:
                     break;
                 default:
-                    decimal d = decimal.Parse(label1.Text);
-                    label1.Text = d.ToString();
+                    decimal d = Convert.ToDecimal(label1.Text);
+                    label1.Text = (0 - d).ToString();
                     break;
             }
         }
@@ -220,6 +209,7 @@ namespace Calculator
         }
 
         private void Clear() {
+            IsError = false;
             label1.Text = "0";
             label1.ForeColor = SystemColors.ControlText;
             MyStatus = Status.S1;
@@ -256,8 +246,6 @@ namespace Calculator
         }
 
         private void Calcuration() {
-            PrevNumber1 = Number1;
-            PrevNumber2 = label1.Text;
             decimal num1 = Convert.ToDecimal(Number1);
             decimal num2 = Convert.ToDecimal(label1.Text);
             decimal result = 0;
@@ -275,7 +263,7 @@ namespace Calculator
                     result = num1 + num2;
                     break;
             }
-            label1.Text = string.Format("{0:G28}", result);
+            label1.Value = result;
         }
 
         private void Form1_KeyPress(object sender, KeyPressEventArgs e) {
@@ -286,6 +274,31 @@ namespace Calculator
                 caption = e.KeyChar;
             }
             ButtonClick(caption);
+        }
+
+        private bool _IsError = false;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool IsError {
+            get {
+                return _IsError;
+            }
+            set {
+                if (IsError != value) {
+                    _IsError = value;
+                    label1.ForeColor = value ? Color.Red : SystemColors.ControlText;
+                    label1.Invalidate();
+                }
+            }
+        }
+
+        private void Label1_Paint(object? sender, PaintEventArgs e) {
+            if (IsError) {
+                using (var brush = new SolidBrush(label1.ForeColor))
+                using (var fnt = new Font("ÇlÇr ÉSÉVÉbÉN", 9F, FontStyle.Bold)) {
+                    e.Graphics.DrawString("E", fnt, brush, 10, 25);
+                }
+            }
         }
     }
 }
