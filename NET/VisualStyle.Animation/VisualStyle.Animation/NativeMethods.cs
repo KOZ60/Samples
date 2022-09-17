@@ -126,7 +126,7 @@
         }
 
         [DllImport(ExternDll.User32)]
-        public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+        public static extern IntPtr WindowFromPoint(Point p);
 
         [DllImport(ExternDll.Uxtheme, CharSet = CharSet.Auto)]
         public static extern IntPtr OpenThemeData(IntPtr hwnd,

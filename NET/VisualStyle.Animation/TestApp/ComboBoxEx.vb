@@ -18,7 +18,8 @@ Public Class ComboBoxEx
 
     Protected Overrides Sub CreateHandle()
         MyBase.CreateHandle()
-        Controller.Enabled = Application.RenderWithVisualStyles AndAlso
+        Controller.Enabled = Not DesignMode AndAlso
+                            Application.RenderWithVisualStyles AndAlso
                             DropDownStyle = ComboBoxStyle.DropDownList AndAlso
                             FlatStyle = FlatStyle.Standard
     End Sub
@@ -38,7 +39,7 @@ Public Class ComboBoxEx
             If DroppedDown Then
                 e.State = AnimationState.Pressed
             Else
-                If MouseIsOver Then
+                If Controller.MouseIsOver Then
                     e.State = AnimationState.Hot
                 Else
                     e.State = AnimationState.Normal
@@ -48,24 +49,6 @@ Public Class ComboBoxEx
             e.State = AnimationState.Disabled
         End If
     End Sub
-
-    Private ReadOnly Property MouseIsOver As Boolean
-        Get
-            Dim screenPosition As Point = Control.MousePosition
-            If WindowFromPoint(screenPosition) <> Me.Handle Then
-                Return False
-            End If
-            Dim clientPosition As Point = PointToClient(screenPosition)
-            If Not ClientRectangle.Contains(clientPosition) Then
-                Return False
-            End If
-            Return True
-        End Get
-    End Property
-
-    <DllImport("user32.dll")>
-    Private Shared Function WindowFromPoint(ByVal p As Point) As IntPtr
-    End Function
 
     Private Sub Controller_QueryDuration(sender As Object, e As QueryDurationEventArgs) Handles Controller.QueryDuration
         Dim newElement As VisualStyleElement = ToDropDownElement(e.NewState)
@@ -104,7 +87,8 @@ Public Class ComboBoxEx
         Dim textFace As Rectangle = ClientRectangle
         textFace.Width -= dropdownWidth
         textFace.Inflate(-3, -3)
-        TextRenderer.DrawText(e.Graphics, Text, Font, textFace, ForeColor,
+        Dim textColor As Color = If(Enabled, ForeColor, SystemColors.GrayText)
+        TextRenderer.DrawText(e.Graphics, Text, Font, textFace, textColor,
                             TextFormatFlags.Left Or TextFormatFlags.VerticalCenter)
 
         ' フォーカスを示す四角形を描画

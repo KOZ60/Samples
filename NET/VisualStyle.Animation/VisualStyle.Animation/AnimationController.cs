@@ -71,20 +71,6 @@
     /// </remarks>
     public class AnimationController<T> where T : struct
     {
-        [ThreadStatic]
-        private static Initializer initializer;
-
-        private class Initializer : ThreadInitializer
-        {
-            protected override void OnInitialize() {
-                NativeMethods.BufferedPaintInit();
-            }
-
-            protected override void OnExitThread() {
-                NativeMethods.BufferedPaintUnInit();
-            }
-        }
-
         /// <summary>
         /// 現在のステータスによってコントロールを描画するときに呼ばれます。
         /// </summary>
@@ -107,10 +93,10 @@
         /// </summary>
         /// <param name="control">アニメーションを実装するコントロール</param>
         public AnimationController(Control control) {
-            if (initializer == null) {
-                initializer = new Initializer();
-            }
             this.control = control;
+            control.HandleCreated += Control_HandleCreated;
+            control.HandleDestroyed += Control_HandleDestroyed;
+            control.EnabledChanged += Control_EnabledChanged;
             control.GotFocus += Control_GotFocus;
             control.LostFocus += Control_LostFocus;
             control.MouseCaptureChanged += Control_MouseCaptureChanged;
@@ -122,6 +108,15 @@
             hooker.Install(control);
         }
 
+        private void Control_HandleCreated(object sender, EventArgs e) {
+            oldState = GetCurrentState();
+            NativeMethods.BufferedPaintInit();
+        }
+
+        private void Control_HandleDestroyed(object sender, EventArgs e) {
+            NativeMethods.BufferedPaintUnInit();
+        }
+
         /// <summary>
         /// 現在の状態が前の状態と違っていないか確認します。
         /// 標準ではフォーカスの状態およびマウス動作によって呼び出されますが、コントロール独自のタイミングで確認したいときに呼び出してください。
@@ -130,6 +125,10 @@
             if (!oldState.Equals(GetCurrentState())) {
                 control.Invalidate();
             }
+        }
+
+        private void Control_EnabledChanged(object sender, EventArgs e) {
+            CheckCurrentState();
         }
 
         private void Control_LostFocus(object sender, EventArgs e) {
@@ -170,6 +169,26 @@
             var e = CreateQueryDurationEventArgs(Duration, oldState, newState);
             OnQueryDuration(e);
             return e.Duration;
+        }
+
+        /// <summary>
+        /// マウスがコントロールの上にあるかどうかを示す値を取得します。
+        /// </summary>
+        public bool MouseIsOver {
+            get {
+                if (!control.IsHandleCreated) {
+                    return false;
+                }
+                var screenPosition = Control.MousePosition;
+                if (NativeMethods.WindowFromPoint(screenPosition) != control.Handle) {
+                    return false;
+                }
+                var clientPosition = control.PointToClient(screenPosition);
+                if (!control.ClientRectangle.Contains(clientPosition)) {
+                    return false;
+                }
+                return true;
+            }
         }
 
         /// <summary>
