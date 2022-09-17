@@ -38,7 +38,7 @@ Partial Class Form1
         Me.Button1.Name = "Button1"
         Me.Button1.Size = New System.Drawing.Size(142, 41)
         Me.Button1.TabIndex = 5
-        Me.Button1.Text = "new Form1"
+        Me.Button1.Text = "new Thread"
         Me.Button1.UseVisualStyleBackColor = True
         '
         'Button2

@@ -5,7 +5,33 @@
     using System.Windows.Forms;
 
     /// <summary>
-    ///  QueryCurrentState イベントのイベントデータを提供します.
+    /// QueryCurrentState イベントのイベントデータを提供します.
+    /// </summary>
+    public class QueryCurrentStateEventArgs : QueryCurrentStateEventArgs<AnimationState>
+    {
+        internal QueryCurrentStateEventArgs() : base() { }
+    }
+
+    /// <summary>
+    /// QueryDuration イベントのイベントデータを提供します.
+    /// </summary>
+    public class QueryDurationEventArgs : QueryDurationEventArgs<AnimationState>
+    {
+        internal QueryDurationEventArgs(int duration, AnimationState oldState, AnimationState newState)
+            : base(duration, oldState, newState) { }
+    }
+
+    /// <summary>
+    /// DrawControl イベントのイベントデータを提供します.
+    /// </summary>
+    public class DrawControlEventArgs : DrawControlEventArgs<AnimationState>
+    {
+        internal DrawControlEventArgs(AnimationState state, Graphics graphics, Rectangle clipRect)
+            : base(state, graphics, clipRect) { }
+    }
+
+    /// <summary>
+    /// QueryCurrentState イベントのイベントデータを提供します.
     /// </summary>
     /// <typeparam name="T">現在の状態を示す列挙体の型。</typeparam>
     public class QueryCurrentStateEventArgs<T> : EventArgs where T : struct

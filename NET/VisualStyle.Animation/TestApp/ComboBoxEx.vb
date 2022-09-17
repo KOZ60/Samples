@@ -1,4 +1,7 @@
-﻿Imports System.Windows.Forms.VisualStyles
+﻿Option Strict On
+
+Imports System.Runtime.InteropServices
+Imports System.Windows.Forms.VisualStyles
 Imports VisualStyle.Animation
 
 Public Class ComboBoxEx
@@ -7,10 +10,10 @@ Public Class ComboBoxEx
     <ThreadStatic>
     Private Shared vsRenderer As VisualStyleRenderer
 
-    Private WithEvents Controller As AnimationController(Of PushButtonState)
+    Private WithEvents Controller As AnimationController
 
     Public Sub New()
-        Controller = New AnimationController(Of PushButtonState)(Me)
+        Controller = New AnimationController(Me)
     End Sub
 
     Protected Overrides Sub CreateHandle()
@@ -30,30 +33,47 @@ Public Class ComboBoxEx
         Controller.CheckCurrentState()
     End Sub
 
-    Private Sub Controller_QueryCurrentState(sender As Object, e As QueryCurrentStateEventArgs(Of PushButtonState)) Handles Controller.QueryCurrentState
+    Private Sub Controller_QueryCurrentState(sender As Object, e As QueryCurrentStateEventArgs) Handles Controller.QueryCurrentState
         If Enabled Then
             If DroppedDown Then
-                e.State = PushButtonState.Pressed
+                e.State = AnimationState.Pressed
             Else
-                Dim pt As Point = PointToClient(Control.MousePosition)
-                If ClientRectangle.Contains(pt) Then
-                    e.State = PushButtonState.Hot
+                If MouseIsOver Then
+                    e.State = AnimationState.Hot
                 Else
-                    e.State = PushButtonState.Normal
+                    e.State = AnimationState.Normal
                 End If
             End If
         Else
-            e.State = PushButtonState.Disabled
+            e.State = AnimationState.Disabled
         End If
     End Sub
 
-    Private Sub Controller_QueryDuration(sender As Object, e As QueryDurationEventArgs(Of PushButtonState)) Handles Controller.QueryDuration
+    Private ReadOnly Property MouseIsOver As Boolean
+        Get
+            Dim screenPosition As Point = Control.MousePosition
+            If WindowFromPoint(screenPosition) <> Me.Handle Then
+                Return False
+            End If
+            Dim clientPosition As Point = PointToClient(screenPosition)
+            If Not ClientRectangle.Contains(clientPosition) Then
+                Return False
+            End If
+            Return True
+        End Get
+    End Property
+
+    <DllImport("user32.dll")>
+    Private Shared Function WindowFromPoint(ByVal p As Point) As IntPtr
+    End Function
+
+    Private Sub Controller_QueryDuration(sender As Object, e As QueryDurationEventArgs) Handles Controller.QueryDuration
         Dim newElement As VisualStyleElement = ToDropDownElement(e.NewState)
         Dim oldElemment As VisualStyleElement = ToDropDownElement(e.OldState)
         e.Duration = ThemeData.GetThemeTransitionDuration(oldElemment, newElement)
     End Sub
 
-    Private Sub Controller_DrawControl(sender As Object, e As DrawControlEventArgs(Of PushButtonState)) Handles Controller.DrawControl
+    Private Sub Controller_DrawControl(sender As Object, e As DrawControlEventArgs) Handles Controller.DrawControl
 
         ' VisualStyle の PushButton をコントロールの全面に描画
 
@@ -94,29 +114,29 @@ Public Class ComboBoxEx
         End If
     End Sub
 
-    Private Function ToButtonElement(state As PushButtonState) As VisualStyleElement
+    Private Function ToButtonElement(state As AnimationState) As VisualStyleElement
         Select Case state
-            Case PushButtonState.Disabled
+            Case AnimationState.Disabled
                 Return VisualStyleElement.Button.PushButton.Disabled
-            Case PushButtonState.Hot
+            Case AnimationState.Hot
                 Return VisualStyleElement.Button.PushButton.Hot
-            Case PushButtonState.Normal
+            Case AnimationState.Normal
                 Return VisualStyleElement.Button.PushButton.Normal
-            Case PushButtonState.Pressed
+            Case AnimationState.Pressed
                 Return VisualStyleElement.Button.PushButton.Pressed
         End Select
         Return VisualStyleElement.Button.PushButton.Normal
     End Function
 
-    Private Function ToDropDownElement(state As PushButtonState) As VisualStyleElement
+    Private Function ToDropDownElement(state As AnimationState) As VisualStyleElement
         Select Case state
-            Case PushButtonState.Disabled
+            Case AnimationState.Disabled
                 Return VisualStyleElement.ComboBox.DropDownButton.Disabled
-            Case PushButtonState.Hot
+            Case AnimationState.Hot
                 Return VisualStyleElement.ComboBox.DropDownButton.Hot
-            Case PushButtonState.Normal
+            Case AnimationState.Normal
                 Return VisualStyleElement.ComboBox.DropDownButton.Normal
-            Case PushButtonState.Pressed
+            Case AnimationState.Pressed
                 Return VisualStyleElement.ComboBox.DropDownButton.Pressed
         End Select
         Return VisualStyleElement.ComboBox.DropDownButton.Normal
