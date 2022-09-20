@@ -35,7 +35,7 @@ Public Class ComboBoxEx
     End Sub
 
     Private Sub CheckCurrentState(sender As Object, e As EventArgs)
-        If IsHandleCreated AndAlso oldState <> GetCurrentState() Then
+        If UseAnimation AndAlso IsHandleCreated AndAlso oldState <> GetCurrentState() Then
             Invalidate()
         End If
     End Sub
@@ -163,8 +163,8 @@ Public Class ComboBoxEx
     End Sub
 
     Private Function GetDuration(oldState As ComboBoxState, newState As ComboBoxState) As Integer
-        Dim oldElement As VisualStyleElement = ToButtonElement(oldState)
-        Dim newElement As VisualStyleElement = ToButtonElement(newState)
+        Dim oldElement As VisualStyleElement = ToDropDownElement(oldState)
+        Dim newElement As VisualStyleElement = ToDropDownElement(newState)
         Dim dwDuration As Integer = 0
         Dim hTheme As IntPtr = NativeMethods.OpenThemeData(Handle, oldElement.ClassName)
         If hTheme <> IntPtr.Zero Then
