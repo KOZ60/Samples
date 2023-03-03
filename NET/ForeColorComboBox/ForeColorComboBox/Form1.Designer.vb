@@ -88,12 +88,13 @@ Partial Class Form1
         'ComboBoxEx1
         '
         Me.ComboBoxEx1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.ComboBoxEx1.Font = New System.Drawing.Font("MS UI Gothic", 24.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(128, Byte))
         Me.ComboBoxEx1.ForeColor = System.Drawing.Color.Red
         Me.ComboBoxEx1.FormattingEnabled = True
         Me.ComboBoxEx1.Items.AddRange(New Object() {"AAAAAAAAAAAAAAAAAAAAAAAAAAA", "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"})
         Me.ComboBoxEx1.Location = New System.Drawing.Point(34, 33)
         Me.ComboBoxEx1.Name = "ComboBoxEx1"
-        Me.ComboBoxEx1.Size = New System.Drawing.Size(195, 20)
+        Me.ComboBoxEx1.Size = New System.Drawing.Size(195, 41)
         Me.ComboBoxEx1.TabIndex = 0
         '
         'Form1
