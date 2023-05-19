@@ -5,7 +5,7 @@ Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports System.Threading
 
-Namespace VB6
+Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
     Public Module Support
 
