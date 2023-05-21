@@ -1,11 +1,12 @@
-﻿Imports System.ComponentModel
+﻿Option Strict On
+Imports System.ComponentModel
 Imports System.Windows.Forms
 
 Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
 	<ProvideProperty("Index", GetType(Button))>
 	Public Class ButtonArray
-		Inherits ControlArray(Of Button)
+		Inherits BaseControlArray(Of Button)
 
 		Public Sub New()
 			MyBase.New()

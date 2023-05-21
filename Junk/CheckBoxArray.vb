@@ -1,11 +1,12 @@
-﻿Imports System.ComponentModel
+﻿Option Strict On
+Imports System.ComponentModel
 Imports System.Windows.Forms
 
 Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
     <ProvideProperty("Index", GetType(CheckBox))>
     Public Class CheckBoxArray
-        Inherits ControlArray(Of CheckBox)
+        Inherits BaseControlArray(Of CheckBox)
 
         Protected Overrides Sub HookUpEvents(o As CheckBox)
             AddHandler o.CheckedChanged, OnCheckedChanged

@@ -4,17 +4,38 @@ Imports System.Windows.Forms
 
 Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
-	Public MustInherit Class ControlArray(Of T As Control)
+	Public MustInherit Class ControlArray(Of T As {New, Control})
 		Inherits Component
 		Implements ISupportInitialize
 		Implements IExtenderProvider
 		Implements IEnumerable(Of T)
 
+		<ThreadStatic>
+		Private Shared ReadOnly _Properties As List(Of PropertyDescriptor)
+		Private Shared ReadOnly Property Properties As List(Of PropertyDescriptor)
+			Get
+				If _Properties Is Nothing Then
+					For Each p As PropertyDescriptor In TypeDescriptor.GetProperties(GetType(T))
+						If p.IsReadOnly Then
+							Continue For
+						End If
+						If p.SerializationVisibility <> DesignerSerializationVisibility.Visible Then
+							Continue For
+						End If
+						Select Case p.Name
+							Case "Visible", "TabIndex", "Index", "MdiList"
+								Continue For
+						End Select
+						_Properties.Add(p)
+					Next
+				End If
+				Return _Properties
+			End Get
+		End Property
+
 		Protected ReadOnly indices As Dictionary(Of T, Integer)
 		Protected ReadOnly controls As Dictionary(Of Integer, T)
 		Protected components As IContainer
-		Private ReadOnly properties As PropertyDescriptorCollection =
-								TypeDescriptor.GetProperties(GetType(T))
 		Private _Form As Form
 		Private _FormType As Type
 		Private _ToolTipScaned As Boolean
@@ -174,13 +195,14 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			End If
 			ResetIndex(ctl)
 			ctl.Parent.Controls.Remove(ctl)
+			ctl.Dispose()
 		End Sub
 
 		Private Function CloneControl() As T
 			Dim lowest As T = controls(LBound)
-			Dim ctl As T = DirectCast(Activator.CreateInstance(GetType(T)), T)
-			For Each p As PropertyDescriptor In properties
-				If IsSerialized(lowest, p) Then
+			Dim ctl As New T()
+			For Each p As PropertyDescriptor In Properties
+				If p.ShouldSerializeValue(lowest) Then
 					p.SetValue(ctl, p.GetValue(lowest))
 				End If
 			Next
@@ -197,23 +219,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			End If
 			lowest.Parent.Controls.Add(ctl)
 			Return ctl
-		End Function
-
-		Private Function IsSerialized(ctl As T, p As PropertyDescriptor) As Boolean
-			If p.IsReadOnly Then
-				Return False
-			End If
-			If p.SerializationVisibility <> DesignerSerializationVisibility.Visible Then
-				Return False
-			End If
-			If Not p.ShouldSerializeValue(ctl) Then
-				Return False
-			End If
-			Select Case p.Name
-				Case "Visible", "TabIndex", "Index", "MdiList"
-					Return False
-			End Select
-			Return True
 		End Function
 
 		Private ReadOnly Property ToolTip1() As ToolTip
@@ -256,7 +261,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			AddHandler o.ChangeUICues, OnChangeUICues
 			AddHandler o.Click, OnClick
 			AddHandler o.ClientSizeChanged, OnClientSizeChanged
-			AddHandler o.ContextMenuChanged, OnContextMenuChanged
 			AddHandler o.ContextMenuStripChanged, OnContextMenuStripChanged
 			AddHandler o.ControlAdded, OnControlAdded
 			AddHandler o.ControlRemoved, OnControlRemoved
@@ -328,7 +332,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			RemoveHandler o.ChangeUICues, OnChangeUICues
 			RemoveHandler o.Click, OnClick
 			RemoveHandler o.ClientSizeChanged, OnClientSizeChanged
-			RemoveHandler o.ContextMenuChanged, OnContextMenuChanged
 			RemoveHandler o.ContextMenuStripChanged, OnContextMenuStripChanged
 			RemoveHandler o.ControlAdded, OnControlAdded
 			RemoveHandler o.ControlRemoved, OnControlRemoved
@@ -399,7 +402,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Private ReadOnly OnChangeUICues As New UICuesEventHandler(Sub(s, e) RaiseEvent ChangeUICues(s, e))
 		Private ReadOnly OnClick As New EventHandler(Sub(s, e) RaiseEvent Click(s, e))
 		Private ReadOnly OnClientSizeChanged As New EventHandler(Sub(s, e) RaiseEvent ClientSizeChanged(s, e))
-		Private ReadOnly OnContextMenuChanged As New EventHandler(Sub(s, e) RaiseEvent ContextMenuChanged(s, e))
 		Private ReadOnly OnContextMenuStripChanged As New EventHandler(Sub(s, e) RaiseEvent ContextMenuStripChanged(s, e))
 		Private ReadOnly OnControlAdded As New ControlEventHandler(Sub(s, e) RaiseEvent ControlAdded(s, e))
 		Private ReadOnly OnControlRemoved As New ControlEventHandler(Sub(s, e) RaiseEvent ControlRemoved(s, e))
@@ -469,7 +471,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Public Event ChangeUICues As UICuesEventHandler
 		Public Event Click As EventHandler
 		Public Event ClientSizeChanged As EventHandler
-		Public Event ContextMenuChanged As EventHandler
 		Public Event ContextMenuStripChanged As EventHandler
 		Public Event ControlAdded As ControlEventHandler
 		Public Event ControlRemoved As ControlEventHandler
@@ -529,6 +530,6 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Public Event Validated As EventHandler
 		Public Event Validating As CancelEventHandler
 		Public Event VisibleChanged As EventHandler
-
 	End Class
+
 End Namespace
