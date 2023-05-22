@@ -1,20 +1,25 @@
+Option Strict On
 Imports System.ComponentModel
 Imports System.Reflection
 Imports System.Windows.Forms
 
 Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
-	Public MustInherit Class ControlArray(Of T As {New, Control})
+	Public MustInherit Class BaseControlArray(Of T As {New, Control})
 		Inherits Component
 		Implements ISupportInitialize
 		Implements IExtenderProvider
 		Implements IEnumerable(Of T)
 
+		Protected MustOverride Sub HookUpEvents(o As T)
+		Protected MustOverride Sub HookDownEvents(o As T)
+
 		<ThreadStatic>
-		Private Shared ReadOnly _Properties As List(Of PropertyDescriptor)
+		Private Shared _Properties As List(Of PropertyDescriptor)
 		Private Shared ReadOnly Property Properties As List(Of PropertyDescriptor)
 			Get
 				If _Properties Is Nothing Then
+					_Properties = New List(Of PropertyDescriptor)()
 					For Each p As PropertyDescriptor In TypeDescriptor.GetProperties(GetType(T))
 						If p.IsReadOnly Then
 							Continue For
@@ -33,9 +38,12 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			End Get
 		End Property
 
-		Protected ReadOnly indices As Dictionary(Of T, Integer)
-		Protected ReadOnly controls As Dictionary(Of Integer, T)
+		Protected ReadOnly indices As New Dictionary(Of T, Integer)
+		Protected ReadOnly controls As New Dictionary(Of Integer, T)
+		Protected ReadOnly controlAddedAtDesignTime As New HashSet(Of T)
+		Protected fIsEndInitCalled As Boolean
 		Protected components As IContainer
+
 		Private _Form As Form
 		Private _FormType As Type
 		Private _ToolTipScaned As Boolean
@@ -43,16 +51,14 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Private Const _BindingFlags As BindingFlags = BindingFlags.Public Or
 							BindingFlags.NonPublic Or BindingFlags.Instance
 
-		Public Sub New()
+		Protected Sub New()
 			MyBase.New()
-			indices = New Dictionary(Of T, Integer)()
-			controls = New Dictionary(Of Integer, T)()
 		End Sub
 
-		Public Sub New(Container As IContainer)
-			MyClass.New()
-			Container.Add(Me)
+		Protected Sub New(Container As IContainer)
+			Me.New()
 			components = Container
+			components.Add(Me)
 		End Sub
 
 		Default Public ReadOnly Property Item(Index As Integer) As T
@@ -63,61 +69,73 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 
 		Protected Overridable Function CanExtend(extendee As Object) As Boolean _
 							Implements IExtenderProvider.CanExtend
-			If extendee IsNot Nothing Then
-				Return extendee.GetType().Equals(GetType(T))
+			Dim ctl As T = TryCast(extendee, T)
+			If ctl IsNot Nothing Then
+				Return indices.ContainsKey(ctl)
 			Else
 				Return False
 			End If
 		End Function
 
 		Public Function GetIndex(o As Object) As Integer
-			Dim target As T = TryCast(o, T)
-			Dim index As Integer
-			If target IsNot Nothing Then
-				If Not indices.TryGetValue(target, index) Then
-					index = -1
+			Return GetIndexCore(TryCast(o, T))
+		End Function
+
+		Private Function GetIndexCore(o As T) As Integer
+			If o IsNot Nothing Then
+				Dim index As Integer
+				If indices.TryGetValue(o, index) Then
+					Return index
 				End If
-			Else
-				index = -1
 			End If
-			Return index
+			Return -1
 		End Function
 
 		Public Sub SetIndex(o As Object, Index As Integer)
-			If Not CanExtend(o) Then
-				Throw New ArgumentException("型が違います。")
-			End If
-			If controls.ContainsKey(Index) Then
-				Throw New ArgumentException("同じインデックスが存在しています。")
-			End If
-			ResetIndex(o)
-			Dim target As T = DirectCast(o, T)
-			indices(target) = Index
-			controls(Index) = target
-			HookUpEventsOfControl(target)
-			HookUpEvents(target)
+			SetIndexCore(TryCast(o, T), Index, False)
 		End Sub
 
-		Protected MustOverride Sub HookUpEvents(o As T)
-		Protected MustOverride Sub HookDownEvents(o As T)
-
-		Public Sub ResetIndex(o As Object)
-			Dim target As T = TryCast(o, T)
-			If target IsNot Nothing Then
-				Dim index As Integer
-				If indices.TryGetValue(target, index) Then
-					indices.Remove(target)
-					controls.Remove(index)
-					HookDownEventsOfControl(target)
-					HookDownEvents(target)
-				End If
+		Protected Sub SetIndexCore(o As T, Index As Integer, fIsDynamic As Boolean)
+			If Not fIsDynamic AndAlso fIsEndInitCalled Then
+				Throw New InvalidOperationException()
 			End If
+			If Index < 0 Then
+				Throw New IndexOutOfRangeException()
+			End If
+			If controls.ContainsKey(Index) Then
+				Throw New ArgumentException("Index が重複しています。")
+			End If
+			AddControl(o, Index)
+		End Sub
+
+		Private Sub AddControl(ctl As T, Index As Integer)
+			If Not fIsEndInitCalled Then
+				controlAddedAtDesignTime.Add(ctl)
+			End If
+			indices(ctl) = Index
+			controls(Index) = ctl
+			HookUpEventsOfControl(ctl)
+			HookUpEvents(ctl)
+		End Sub
+
+		Private Sub RemoveControl(ctl As T, Index As Integer)
+			If controlAddedAtDesignTime.Contains(ctl) Then
+				Throw New InvalidOperationException("デザイン時に配置されたコントロールは Unload できません。")
+			End If
+			indices.Remove(ctl)
+			controls.Remove(Index)
+			HookDownEventsOfControl(ctl)
+			HookDownEvents(ctl)
+		End Sub
+
+		<Obsolete("使用しないでください。")>
+		Public Sub ResetIndex(o As Object)
 		End Sub
 
 		Public Function ShouldSerializeIndex(o As Object) As Boolean
-			Dim target As T = TryCast(o, T)
-			If target IsNot Nothing Then
-				Return indices.ContainsKey(target)
+			Dim ctl As T = TryCast(o, T)
+			If ctl IsNot Nothing Then
+				Return indices.ContainsKey(ctl)
 			Else
 				Return False
 			End If
@@ -177,6 +195,7 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		End Sub
 
 		Private Sub EndInit() Implements ISupportInitialize.EndInit
+			fIsEndInitCalled = True
 		End Sub
 
 		Public Function Load(Index As Integer) As T
@@ -184,19 +203,9 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 				Throw New IndexOutOfRangeException()
 			End If
 			Dim result As T = CloneControl()
-			SetIndex(result, Index)
+			SetIndexCore(result, Index, True)
 			Return result
 		End Function
-
-		Public Sub Unload(Index As Integer)
-			Dim ctl As T = Nothing
-			If Index < 0 OrElse Not controls.TryGetValue(Index, ctl) Then
-				Throw New IndexOutOfRangeException()
-			End If
-			ResetIndex(ctl)
-			ctl.Parent.Controls.Remove(ctl)
-			ctl.Dispose()
-		End Sub
 
 		Private Function CloneControl() As T
 			Dim lowest As T = controls(LBound)
@@ -210,7 +219,7 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			If rdo IsNot Nothing Then
 				rdo.Checked = False
 			End If
-			'VB6 から移植したフォームは ToolTip1 を持っているので設定された caption もコピー
+			'VB6 から移植したフォームは ToolTip1 を持っている
 			If ToolTip1 IsNot Nothing Then
 				Dim caption As String = ToolTip1.GetToolTip(lowest)
 				If Not String.IsNullOrEmpty(caption) Then
@@ -246,6 +255,16 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			End Get
 		End Property
 
+		Public Sub Unload(Index As Integer)
+			Dim ctl As T = Nothing
+			If Index < 0 OrElse Not controls.TryGetValue(Index, ctl) Then
+				Throw New IndexOutOfRangeException()
+			End If
+			RemoveControl(ctl, Index)
+			ctl.Parent.Controls.Remove(ctl)
+			ctl.Dispose()
+		End Sub
+
 		Protected Overrides Sub Dispose(disposing As Boolean)
 			components = Nothing
 			MyBase.Dispose(disposing)
@@ -272,6 +291,8 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			AddHandler o.DragEnter, OnDragEnter
 			AddHandler o.DragLeave, OnDragLeave
 			AddHandler o.DragOver, OnDragOver
+			AddHandler o.DpiChangedAfterParent, OnDpiChangedAfterParent
+			AddHandler o.DpiChangedBeforeParent, OnDpiChangedBeforeParent
 			AddHandler o.EnabledChanged, OnEnabledChanged
 			AddHandler o.Enter, OnEnter
 			AddHandler o.FontChanged, OnFontChanged
@@ -343,6 +364,8 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 			RemoveHandler o.DragEnter, OnDragEnter
 			RemoveHandler o.DragLeave, OnDragLeave
 			RemoveHandler o.DragOver, OnDragOver
+			RemoveHandler o.DpiChangedAfterParent, OnDpiChangedAfterParent
+			RemoveHandler o.DpiChangedBeforeParent, OnDpiChangedBeforeParent
 			RemoveHandler o.EnabledChanged, OnEnabledChanged
 			RemoveHandler o.Enter, OnEnter
 			RemoveHandler o.FontChanged, OnFontChanged
@@ -413,6 +436,8 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Private ReadOnly OnDragEnter As New DragEventHandler(Sub(s, e) RaiseEvent DragEnter(s, e))
 		Private ReadOnly OnDragLeave As New EventHandler(Sub(s, e) RaiseEvent DragLeave(s, e))
 		Private ReadOnly OnDragOver As New DragEventHandler(Sub(s, e) RaiseEvent DragOver(s, e))
+		Private ReadOnly OnDpiChangedAfterParent As New EventHandler(Sub(s, e) RaiseEvent DpiChangedAfterParent(s, e))
+		Private ReadOnly OnDpiChangedBeforeParent As New EventHandler(Sub(s, e) RaiseEvent DpiChangedBeforeParent(s, e))
 		Private ReadOnly OnEnabledChanged As New EventHandler(Sub(s, e) RaiseEvent EnabledChanged(s, e))
 		Private ReadOnly OnEnter As New EventHandler(Sub(s, e) RaiseEvent Enter(s, e))
 		Private ReadOnly OnFontChanged As New EventHandler(Sub(s, e) RaiseEvent FontChanged(s, e))
@@ -482,6 +507,8 @@ Namespace Global.Microsoft.VisualBasic.Compatibility.VB6
 		Public Event DragEnter As DragEventHandler
 		Public Event DragLeave As EventHandler
 		Public Event DragOver As DragEventHandler
+		Public Event DpiChangedAfterParent As EventHandler
+		Public Event DpiChangedBeforeParent As EventHandler
 		Public Event EnabledChanged As EventHandler
 		Public Event Enter As EventHandler
 		Public Event FontChanged As EventHandler
