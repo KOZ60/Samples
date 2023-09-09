@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32002.261
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Koz.Fx.Interop", "Koz.Fx.Interop\Koz.Fx.Interop.csproj", "{EC8845FC-E187-41D9-A121-7ACE826B8BAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC8845FC-E187-41D9-A121-7ACE826B8BAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC8845FC-E187-41D9-A121-7ACE826B8BAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC8845FC-E187-41D9-A121-7ACE826B8BAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC8845FC-E187-41D9-A121-7ACE826B8BAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B73166-FD02-4734-BAD9-640F47DBB4FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B73166-FD02-4734-BAD9-640F47DBB4FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B73166-FD02-4734-BAD9-640F47DBB4FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B73166-FD02-4734-BAD9-640F47DBB4FB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B9E60118-479A-467D-AA8E-8F49B05CBEA6}
+	EndGlobalSection
+EndGlobal
