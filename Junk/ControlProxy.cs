@@ -55,7 +55,7 @@ public class ControlProxy : BaseProxy
         var parameters = mi.GetParameters();
         for (int i = 0; i < parameters.Length; i++) {
             var parameter = parameters[i];
-            if (parameter.ParameterType.IsByRef && parameter is Control ctl) {
+            if (parameter.ParameterType.IsByRef && args[i] is Control ctl) {
                 args[i] = GetTransparentProxy(ctl);
             }
         }
