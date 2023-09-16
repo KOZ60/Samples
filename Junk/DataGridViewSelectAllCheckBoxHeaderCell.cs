@@ -243,7 +243,47 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         Rectangle checkBoxBounds = GetCheckBoxBounds(graphics, cellBounds,
                                             advancedBorderStyle, CheckBoxState.UncheckedNormal);
         CheckBoxState checkBoxState = GetCheckBoxState();
-        DataGridViewCheckBoxCellRenderer.DrawCheckBox(graphics, checkBoxBounds, checkBoxState);
+        DrawCheckBox(graphics, checkBoxBounds, checkBoxState);
+    }
+
+    private void DrawCheckBox(Graphics g, Rectangle checkBoxBounds, CheckBoxState checkBoxState) {
+        if (Application.RenderWithVisualStyles) {
+            DataGridViewCheckBoxCellRenderer.DrawCheckBox(g, checkBoxBounds, checkBoxState);
+        } else {
+            ButtonState bs;
+            bool mixDraw = false;
+            switch (checkBoxState) {
+                case CheckBoxState.UncheckedNormal:
+                case CheckBoxState.UncheckedHot:
+                case CheckBoxState.UncheckedPressed:
+                case CheckBoxState.UncheckedDisabled:
+                    bs = ButtonState.Normal;
+                    break;
+                case CheckBoxState.CheckedNormal:
+                case CheckBoxState.CheckedHot:
+                case CheckBoxState.CheckedPressed:
+                case CheckBoxState.CheckedDisabled:
+                    bs = ButtonState.Checked;
+                    break;
+                default:
+                    bs = ButtonState.Inactive;
+                    mixDraw = true;
+                    break;
+            }
+            switch (checkBoxState) {
+                case CheckBoxState.UncheckedPressed:
+                case CheckBoxState.CheckedPressed:
+                case CheckBoxState.MixedPressed:
+                    bs |= ButtonState.Pushed;
+                    break;
+            }
+
+            if (mixDraw) {
+                ControlPaint.DrawMixedCheckBox(g, checkBoxBounds, bs);
+            } else {
+                ControlPaint.DrawCheckBox(g, checkBoxBounds, bs);
+            }
+        }
     }
 
     private CheckBoxState GetCheckBoxState() {
