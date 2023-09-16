@@ -31,6 +31,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
     DataGridView _Owner;
 
     public DataGridViewSelectAllCheckBoxHeaderCell() {
+        // For GetContentBounds
         Value = " ";
     }
 
@@ -53,17 +54,20 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
             if (_Owner != null) {
                 _Owner.CurrentCellDirtyStateChanged -= Owner_CurrentCellDirtyStateChanged;
                 _Owner.CellValueChanged -= Owner_CellValueChanged;
+                _Owner.RowsAdded -= Owner_RowsAdded;
+                _Owner.RowsRemoved -= Owner_RowsRemoved;
             }
             _Owner = value;
             if (_Owner != null) {
                 _Owner.CurrentCellDirtyStateChanged += Owner_CurrentCellDirtyStateChanged;
                 _Owner.CellValueChanged += Owner_CellValueChanged;
-                Style = OwnerColumn.DefaultCellStyle;
+                _Owner.RowsAdded += Owner_RowsAdded;
+                _Owner.RowsRemoved += Owner_RowsRemoved;
             }
         }
     }
 
-    private DataGridViewCheckBoxColumn OwnerColumn { 
+    private DataGridViewCheckBoxColumn OwnerColumn {
         get {
             if (Owner != null) {
                 return Owner.Columns[ColumnIndex] as DataGridViewCheckBoxColumn;
@@ -80,6 +84,21 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
     }
 
     private void Owner_CellValueChanged(object sender, DataGridViewCellEventArgs e) {
+        if (e.ColumnIndex == ColumnIndex) {
+            ResetState();
+        }
+    }
+
+    private void Owner_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e) {
+        ResetState();
+    }
+
+    private void Owner_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e) {
+        ResetState();
+    }
+
+    private void ResetState() {
+        _AllCheckState = null;
         Invalidate();
     }
 
@@ -98,11 +117,16 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
+    private CheckState? _AllCheckState = null;
+
     private CheckState AllCheckState {
         get {
+            if (_AllCheckState.HasValue) {
+                return _AllCheckState.Value;
+            }
             int checkedCount = 0;
             int rowCount = CommittedRowCount;
-            if (rowCount > 0 ) {
+            if (rowCount > 0) {
                 for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                     object value = Owner[ColumnIndex, rowIndex].FormattedValue;
                     if (value != null) {
@@ -121,17 +145,19 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
                     }
                 }
                 if (checkedCount == 0) {
-                    return CheckState.Unchecked;
+                    _AllCheckState = CheckState.Unchecked;
                 } else if (checkedCount == rowCount) {
-                    return CheckState.Checked;
+                    _AllCheckState = CheckState.Checked;
                 } else {
-                    return CheckState.Indeterminate;
+                    _AllCheckState = CheckState.Indeterminate;
                 }
             } else {
-                return CheckState.Unchecked;
+                _AllCheckState = CheckState.Unchecked;
             }
+            return _AllCheckState.Value;
         }
         set {
+            if (OwnerColumn.ReadOnly) return;
             if (AllCheckState != value) {
                 switch (value) {
                     case CheckState.Checked:
@@ -159,6 +185,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
                         }
                         break;
                 }
+                _AllCheckState = value;
                 Invalidate();
             }
         }
@@ -240,10 +267,12 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
 
     protected override void Paint(Graphics graphics, Rectangle clipBounds, Rectangle cellBounds, int rowIndex, DataGridViewElementStates dataGridViewElementState, object value, object formattedValue, string errorText, DataGridViewCellStyle cellStyle, DataGridViewAdvancedBorderStyle advancedBorderStyle, DataGridViewPaintParts paintParts) {
         base.Paint(graphics, clipBounds, cellBounds, rowIndex, dataGridViewElementState, string.Empty, string.Empty, errorText, cellStyle, advancedBorderStyle, paintParts);
-        Rectangle checkBoxBounds = GetCheckBoxBounds(graphics, cellBounds,
-                                            advancedBorderStyle, CheckBoxState.UncheckedNormal);
-        CheckBoxState checkBoxState = GetCheckBoxState();
-        DrawCheckBox(graphics, checkBoxBounds, checkBoxState);
+        if (!OwnerColumn.ReadOnly) {
+            Rectangle checkBoxBounds = GetCheckBoxBounds(graphics, cellBounds,
+                                                advancedBorderStyle, CheckBoxState.UncheckedNormal);
+            CheckBoxState checkBoxState = GetCheckBoxState();
+            DrawCheckBox(graphics, checkBoxBounds, checkBoxState);
+        }
     }
 
     private void DrawCheckBox(Graphics g, Rectangle checkBoxBounds, CheckBoxState checkBoxState) {
@@ -287,21 +316,36 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
     }
 
     private CheckBoxState GetCheckBoxState() {
-        if (MouseIsDown) {
-            return CheckBoxState.UncheckedPressed;
+        if (OwnerColumn.ReadOnly) {
+            if (MouseIsDown) {
+                return CheckBoxState.UncheckedPressed;
+            } else {
+                switch (AllCheckState) {
+                    case CheckState.Checked:
+                        return CheckBoxState.CheckedDisabled;
+                    case CheckState.Unchecked:
+                        return CheckBoxState.UncheckedDisabled;
+                    default:
+                        return CheckBoxState.MixedDisabled;
+                }
+            }
         } else {
-            switch (AllCheckState) {
-                case CheckState.Checked:
-                    return CheckBoxState.CheckedNormal;
-                case CheckState.Unchecked:
-                    return CheckBoxState.UncheckedNormal;
-                default:
-                    return CheckBoxState.MixedNormal;
+            if (MouseIsDown) {
+                return CheckBoxState.UncheckedPressed;
+            } else {
+                switch (AllCheckState) {
+                    case CheckState.Checked:
+                        return CheckBoxState.CheckedNormal;
+                    case CheckState.Unchecked:
+                        return CheckBoxState.UncheckedNormal;
+                    default:
+                        return CheckBoxState.MixedNormal;
+                }
             }
         }
     }
 
-    private Rectangle GetCheckBoxBounds(Graphics g, Rectangle cellBounds, 
+    private Rectangle GetCheckBoxBounds(Graphics g, Rectangle cellBounds,
                                         DataGridViewAdvancedBorderStyle advancedBorderStyle,
                                         CheckBoxState state) {
         Size checkBoxSize = GetCheckBoxSize(g, state);
@@ -346,7 +390,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
                     checkBoxSize.Height -= 2;
                     break;
                 default: // FlatStyle.Standard || FlatStyle.System
-                    checkBoxSize = new Size(SystemInformation.Border3DSize.Width * 2 + 9, 
+                    checkBoxSize = new Size(SystemInformation.Border3DSize.Width * 2 + 9,
                         SystemInformation.Border3DSize.Width * 2 + 9);
                     break;
             }
