@@ -5,7 +5,7 @@ using System.Windows.Forms.VisualStyles;
 
 public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderCell
 {
-    private static class DataGridViewCheckBoxCellRenderer
+    protected static class DataGridViewCheckBoxCellRenderer
     {
         private static readonly VisualStyleElement CheckBoxElement
             = VisualStyleElement.Button.CheckBox.UncheckedNormal;
@@ -28,7 +28,10 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    DataGridView _Owner;
+    private DataGridView _Owner;
+    private CheckState? _AllCheckState = null;
+    private bool _MouseIsDown;
+    private bool _MouseIsOver;
 
     public DataGridViewSelectAllCheckBoxHeaderCell() {
         // For GetContentBounds
@@ -46,7 +49,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         Owner = DataGridView;
     }
 
-    private DataGridView Owner {
+    protected DataGridView Owner {
         get {
             return _Owner;
         }
@@ -67,7 +70,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    private DataGridViewCheckBoxColumn OwnerColumn {
+    protected DataGridViewCheckBoxColumn OwnerColumn {
         get {
             if (Owner != null) {
                 return Owner.Columns[ColumnIndex] as DataGridViewCheckBoxColumn;
@@ -77,32 +80,48 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
     }
 
     private void Owner_CurrentCellDirtyStateChanged(object sender, EventArgs e) {
+        OnCurrentCellDirtyStateChanged(e);
+    }
+
+    private void Owner_CellValueChanged(object sender, DataGridViewCellEventArgs e) {
+        OnCellValueChanged(e);
+    }
+
+    private void Owner_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e) {
+        OnRowsRemoved(e);
+    }
+
+    private void Owner_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e) {
+        OnRowsAdded(e);
+    }
+
+    protected virtual void OnCurrentCellDirtyStateChanged(EventArgs e) {
         if (Owner.IsCurrentCellDirty &&
             Owner.CurrentCell.ColumnIndex == ColumnIndex) {
             Owner.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
     }
 
-    private void Owner_CellValueChanged(object sender, DataGridViewCellEventArgs e) {
+    protected virtual void OnCellValueChanged(DataGridViewCellEventArgs e) {
         if (e.ColumnIndex == ColumnIndex) {
             ResetState();
         }
     }
 
-    private void Owner_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e) {
+    protected virtual void OnRowsRemoved(DataGridViewRowsRemovedEventArgs e) {
         ResetState();
     }
 
-    private void Owner_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e) {
+    protected virtual void OnRowsAdded(DataGridViewRowsAddedEventArgs e) {
         ResetState();
     }
 
-    private void ResetState() {
+    protected void ResetState() {
         _AllCheckState = null;
         Invalidate();
     }
 
-    private int CommittedRowCount {
+    protected int CommittedRowCount {
         get {
             int rowCount = Owner.RowCount;
             if (rowCount > 0) {
@@ -117,9 +136,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    private CheckState? _AllCheckState = null;
-
-    private CheckState AllCheckState {
+    protected virtual CheckState AllCheckState {
         get {
             if (_AllCheckState.HasValue) {
                 return _AllCheckState.Value;
@@ -191,15 +208,13 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    protected Rectangle ClickRectangle {
+    protected virtual Rectangle ClickRectangle {
         get {
             using (var g = Owner.CreateGraphics()) {
                 return GetContentBounds(g, OwnerColumn.InheritedStyle, -1);
             }
         }
     }
-
-    private bool _MouseIsDown;
 
     protected bool MouseIsDown {
         get { return _MouseIsDown; }
@@ -210,8 +225,6 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
             }
         }
     }
-
-    private bool _MouseIsOver;
 
     protected bool MouseIsOver {
         get { return _MouseIsOver; }
@@ -275,7 +288,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    private void DrawCheckBox(Graphics g, Rectangle checkBoxBounds, CheckBoxState checkBoxState) {
+    protected virtual void DrawCheckBox(Graphics g, Rectangle checkBoxBounds, CheckBoxState checkBoxState) {
         if (Application.RenderWithVisualStyles) {
             DataGridViewCheckBoxCellRenderer.DrawCheckBox(g, checkBoxBounds, checkBoxState);
         } else {
@@ -315,7 +328,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    private CheckBoxState GetCheckBoxState() {
+    protected virtual CheckBoxState GetCheckBoxState() {
         if (OwnerColumn.ReadOnly) {
             if (MouseIsDown) {
                 return CheckBoxState.UncheckedPressed;
@@ -345,7 +358,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         }
     }
 
-    private Rectangle GetCheckBoxBounds(Graphics g, Rectangle cellBounds,
+    protected virtual Rectangle GetCheckBoxBounds(Graphics g, Rectangle cellBounds,
                                         DataGridViewAdvancedBorderStyle advancedBorderStyle,
                                         CheckBoxState state) {
         Size checkBoxSize = GetCheckBoxSize(g, state);
@@ -360,7 +373,7 @@ public class DataGridViewSelectAllCheckBoxHeaderCell : DataGridViewColumnHeaderC
         return new Rectangle(new Point(x, y), checkBoxSize);
     }
 
-    private Size GetCheckBoxSize(Graphics g, CheckBoxState state) {
+    protected virtual Size GetCheckBoxSize(Graphics g, CheckBoxState state) {
         Size checkBoxSize;
         if (Application.RenderWithVisualStyles) {
             checkBoxSize = CheckBoxRenderer.GetGlyphSize(g, state);
