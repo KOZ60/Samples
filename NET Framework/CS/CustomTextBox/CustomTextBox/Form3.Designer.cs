@@ -47,9 +47,11 @@ namespace CustomTextBox
             // restrictText1
             // 
             this.restrictText1.Location = new System.Drawing.Point(64, 148);
+            this.restrictText1.MaxLength = 3;
             this.restrictText1.Name = "restrictText1";
             this.restrictText1.Size = new System.Drawing.Size(203, 19);
             this.restrictText1.TabIndex = 0;
+            this.restrictText1.Text = "AAAAA";
             // 
             // Form3
             // 

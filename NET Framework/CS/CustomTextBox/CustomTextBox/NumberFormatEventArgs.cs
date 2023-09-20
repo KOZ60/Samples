@@ -6,9 +6,9 @@
     {
         public NumberFormatEventArgs(decimal value, string formatString, string formatedText)
         {
-            this.Value = value;
-            this.FormatString = formatString;
-            this.FormatedText = formatedText;
+            Value = value;
+            FormatString = formatString;
+            FormatedText = formatedText;
         }
 
         public decimal Value { get; }

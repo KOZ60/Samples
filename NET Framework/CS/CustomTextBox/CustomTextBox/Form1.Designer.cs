@@ -52,6 +52,7 @@
             this.numberText1.Name = "numberText1";
             this.numberText1.Size = new System.Drawing.Size(186, 19);
             this.numberText1.TabIndex = 0;
+            this.numberText1.Text = "AAAAA";
             // 
             // Form1
             // 

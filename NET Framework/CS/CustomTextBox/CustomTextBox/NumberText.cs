@@ -8,7 +8,7 @@
     {
         // 符号を許可するかどうか
         [DefaultValue(true)]
-        public bool Sign { get; set; } = true;                      
+        public bool Sign { get; set; } = true;
 
         // 整数部の長さ
         [DefaultValue(5)]
@@ -19,16 +19,14 @@
         public int DecimalLength { get; set; } = 3;
 
         // フォーカスを失ったとき表示する際の書式
-        [DefaultValue("#,##0.000")]
-        public string FormatString { get; set; } = "#,##0.000";
+        [DefaultValue("#,0.000")]
+        public string FormatString { get; set; } = "#,0.000";
 
         // 値を編集する際に発生するイベント。編集後の文字列をカスタマイズすることができます。
         public event EventHandler<NumberFormatEventArgs> Format;
 
-        protected override bool IsValidChar(char keyChar)
-        {
-            switch (keyChar)
-            {
+        protected override bool IsValidChar(char keyChar) {
+            switch (keyChar) {
                 case '-':
                 case '+':
                     // 符号チェック
@@ -42,43 +40,35 @@
             }
         }
 
-        protected override bool IsValidText(string text)
-        {
-            return TryParse(text, out decimal result);
+        protected override bool IsValidText(string text) {
+            return TryParse(text, out _);
         }
 
-        protected virtual bool TryParse(string text, out decimal result)
-        {
+        protected virtual bool TryParse(string text, out decimal result) {
             result = decimal.Zero;
             var signChar = '+';
 
             // 空ならOK
-            if (string.IsNullOrEmpty(text))
-            {
+            if (string.IsNullOrEmpty(text)) {
                 return true;
             }
 
             // 左の符号を除く
             var leftChar = text[0];
-            if (leftChar == '+' || leftChar == '-')
-            {
+            if (leftChar == '+' || leftChar == '-') {
                 signChar = leftChar;
                 text = text.Substring(1);
-            }
-            else
-            {
+            } else {
                 // 右の符号を除く
                 var rightChar = text[text.Length - 1];
-                if (rightChar == '+' || rightChar == '-')
-                {
+                if (rightChar == '+' || rightChar == '-') {
                     signChar = rightChar;
                     text = text.Substring(0, text.Length - 1);
                 }
             }
 
             // 符号が残っていたらエラー
-            if (text.IndexOfAny(new char[] { '+', '-' }) != -1)
-            {
+            if (text.IndexOfAny(new char[] { '+', '-' }) != -1) {
                 return false;
             }
 
@@ -86,22 +76,18 @@
             var args = text.Split('.');
 
             // 小数点が2つ以上あればエラー
-            if (args.Length > 2)
-            {
+            if (args.Length > 2) {
                 return false;
             }
 
             // 整数部の長さを確認
-            if (args[0].Length > IntegerLength)
-            {
+            if (args[0].Length > IntegerLength) {
                 return false;
             }
 
             // 小数部の長さを確認
-            if (args.Length > 1)
-            {
-                if (args[1].Length > DecimalLength)
-                {
+            if (args.Length > 1) {
+                if (args[1].Length > DecimalLength) {
                     return false;
                 }
             }
@@ -110,49 +96,37 @@
             decimal.TryParse(text, out result);
 
             // 符号を反映
-            if (signChar == '-')
-            {
-                result = result * -1;
+            if (signChar == '-') {
+                result *= -1;
             }
             return true;
         }
 
-        protected virtual string GetValidText()
-        {
+        protected virtual string GetValidText() {
             var sb = new StringBuilder();
-            foreach (var c in base.Text)
-            {
-                if (IsValidChar(c))
-                {
+            foreach (var c in base.Text) {
+                if (IsValidChar(c)) {
                     sb.Append(c);
                 }
             }
             return sb.ToString();
         }
 
-        protected virtual string GetFormatText()
-        {
-            return GetFormatText(this.Value);
+        protected virtual string GetFormatText() {
+            return GetFormatText(Value);
         }
 
-        protected virtual string GetFormatText(decimal value)
-        {
+        protected virtual string GetFormatText(decimal value) {
             string format;
             string formatedText;
-            if (string.IsNullOrEmpty(FormatString))
-            {
+            if (string.IsNullOrEmpty(FormatString)) {
                 format = "{0}";
-            }
-            else
-            {
+            } else {
                 format = "{0:" + FormatString + "}";
             }
-            try
-            {
+            try {
                 formatedText = string.Format(format, value);
-            }
-            catch
-            {
+            } catch {
                 formatedText = base.Text;
             }
 
@@ -161,8 +135,7 @@
             return e.FormatedText;
         }
 
-        protected virtual void OnFormat(NumberFormatEventArgs e)
-        {
+        protected virtual void OnFormat(NumberFormatEventArgs e) {
             Format?.Invoke(this, e);
         }
 
@@ -178,38 +151,12 @@
             }
         }
 
-        protected override bool CanRaiseEvents {
-            get {
-                return CanRaiseEventsInternal;
-            }
-        }
-
-        private bool CanRaiseEventsInternal { get; set; } = true;
-
-        protected void SetTextWithoutEvents(string text)
-        {
-            if (base.Text != text)
-            {
-                CanRaiseEventsInternal = false;
-                try
-                {
-                    base.Text = text;
-                }
-                finally
-                {
-                    CanRaiseEventsInternal = true;
-                }
-            }
-        }
-
-        protected override void OnEnter(EventArgs e)
-        {
+        protected override void OnEnter(EventArgs e) {
             SetTextWithoutEvents(GetValidText());
             base.OnEnter(e);
         }
 
-        protected override void OnLeave(EventArgs e)
-        {
+        protected override void OnLeave(EventArgs e) {
             SetTextWithoutEvents(GetFormatText());
             base.OnLeave(e);
         }

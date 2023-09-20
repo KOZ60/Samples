@@ -1,12 +1,15 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 
 namespace CustomTextBox
 {
-    public class PaddingTextBox : TextBox
+    /// <summary>
+    /// Padding プロパティを有効にした TextBox 
+    /// ES_MULTILINE を有効にし、MultiLine = false のときは CR/LF/TAB を無視する
+    /// </summary>
+    public class PaddingTextBox : RestrictText
     {
         private static Padding defaultPadding = new Padding(0, 2, 0, 2);
         private bool initLayouted = false;
@@ -171,16 +174,6 @@ namespace CustomTextBox
                     base.WndProc(ref m);
                     break;
 
-                case NativeMethods.WM_PASTE:
-                    if (Clipboard.ContainsText()) {
-                        string pasteText = Clipboard.GetText();
-                        if (!Multiline) {
-                            pasteText = RemoveControlChar(pasteText);
-                        }
-                        OnPaste(pasteText);
-                    }
-                    break;
-
                 default:
                     base.WndProc(ref m);
                     break;
@@ -188,14 +181,14 @@ namespace CustomTextBox
         }
 
         protected string RemoveControlChar(string value) {
-            var sb = new StringBuilder(value.Length);
+            var sb = StringBuilderCache.Acquire(value.Length);
             for (int i = 0; i < value.Length; i++) {
                 char c = value[i];
                 if (!char.IsControl(c)) {
                     sb.Append(c);
                 }
             }
-            return sb.ToString();
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         private static SafeStringBuffer RemoveControlChar(IntPtr ptr) {
@@ -215,8 +208,12 @@ namespace CustomTextBox
             return buffer;
         }
 
-        protected virtual void OnPaste(string text) {
-            Paste(text);
+        protected override bool IsValidChar(char keyChar) {
+            if (!Multiline && "\n\r\t".IndexOf(keyChar) >= 0) {
+                return false;
+            }
+            return base.IsValidChar(keyChar);
         }
+
     }
 }
