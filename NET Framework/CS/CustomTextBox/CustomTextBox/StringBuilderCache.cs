@@ -3,7 +3,7 @@ using System.Text;
 
 namespace CustomTextBox
 {
-    public class StringBuilderCache
+    internal class StringBuilderCache
     {
         private const int MAX_BUILDER_SIZE = 360;
         private const int DefaultCapacity = 16;

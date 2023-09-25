@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace CustomTextBox
 {
@@ -15,6 +16,8 @@ namespace CustomTextBox
 
         public const int
             WM_SETTEXT = 0x000C,
+            WM_PAINT = 0x000F,
+            WM_ERASEBKGND = 0x0014,
             WM_CHAR = 0x0102,
             WM_IME_CHAR = 0x0286;
 
@@ -27,6 +30,7 @@ namespace CustomTextBox
 
         public const int
             EM_REPLACESEL = 0x00C2,
+            EM_GETRECT = 0x00B2,
             EM_SETRECT = 0x00B3,
             EM_UNDO = 0x00C7;
 
@@ -131,13 +135,13 @@ namespace CustomTextBox
 
             public int Width {
                 get {
-                    return this.Right - this.Left;
+                    return Right - Left;
                 }
             }
 
             public int Height {
                 get {
-                    return this.Bottom - this.Top;
+                    return Bottom - Top;
                 }
             }
 

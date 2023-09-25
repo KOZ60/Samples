@@ -9,7 +9,7 @@ namespace CustomTextBox
     /// Padding プロパティを有効にした TextBox 
     /// ES_MULTILINE を有効にし、MultiLine = false のときは CR/LF/TAB を無視する
     /// </summary>
-    public class PaddingTextBox : RestrictText
+    public class PaddingTextBox : RestrictTextBox
     {
         private static Padding defaultPadding = new Padding(0, 2, 0, 2);
         private bool initLayouted = false;

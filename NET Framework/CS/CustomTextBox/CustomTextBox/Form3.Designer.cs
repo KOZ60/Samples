@@ -26,7 +26,7 @@ namespace CustomTextBox
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.restrictText1 = new CustomTextBox.RestrictText();
+            this.restrictText1 = new RestrictTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -71,6 +71,6 @@ namespace CustomTextBox
 
         #endregion
 
-        private RestrictText restrictText1;
+        private RestrictTextBox restrictText1;
     }
 }

@@ -4,7 +4,7 @@
     using System.ComponentModel;
     using System.Text;
 
-    public class NumberText : RestrictText
+    public class NumberText : RestrictTextBox
     {
         // 符号を許可するかどうか
         [DefaultValue(true)]
@@ -23,7 +23,7 @@
         public string FormatString { get; set; } = "#,0.000";
 
         // 値を編集する際に発生するイベント。編集後の文字列をカスタマイズすることができます。
-        public event EventHandler<NumberFormatEventArgs> Format;
+        public event EventHandler<NumberFormatEventArgs> Formatting;
 
         protected override bool IsValidChar(char keyChar) {
             switch (keyChar) {
@@ -136,7 +136,7 @@
         }
 
         protected virtual void OnFormat(NumberFormatEventArgs e) {
-            Format?.Invoke(this, e);
+            Formatting?.Invoke(this, e);
         }
 
         [Browsable(false)]
