@@ -76,18 +76,12 @@
     </Compile>
     <Compile Include="LayoutUtils.cs" />
     <Compile Include="NativeMethods.cs" />
-    <Compile Include="NumberText.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="NumberText.cs" />
     <Compile Include="NumberFormatEventArgs.cs" />
-    <Compile Include="PaddingTextBox.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="PaddingTextBox.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RestrictText.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="RestrictTextBox.cs" />
     <Compile Include="SafeStringBuffer.cs" />
     <Compile Include="StringBuilderCache.cs" />
     <EmbeddedResource Include="BaseForm.resx">

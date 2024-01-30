@@ -297,13 +297,13 @@ public class RestrictTextBox : TextBox
         }
     }
 
+    // for userpaint
+
     private BufferedGraphicsContext BufferContext {
         get {
             return BufferedGraphicsManager.Current;
         }
     }
-
-    // userpaint
 
     protected virtual void WmPaint(ref Message m) {
         if (m.WParam == IntPtr.Zero) {
