@@ -7,12 +7,14 @@ using System.Threading;
 public abstract class TimerComponent : Component
 {
     private static readonly object eventElapsed = new object();
+    public static readonly decimal MaxInterval 
+                        = decimal.MaxValue / TimeSpan.TicksPerMillisecond;
 
-    private long intervalTicks;
-    private bool enabled;
+    protected long intervalTicks;
+    protected bool enabled;
 
-    private readonly EventWaitHandle cancelHandle = new ManualResetEvent(false);
-    private Thread thread;
+    protected readonly EventWaitHandle cancelHandle = new ManualResetEvent(false);
+    protected Thread thread;
 
     protected TimerComponent() { }
 
@@ -47,23 +49,26 @@ public abstract class TimerComponent : Component
             return enabled;
         }
         set {
-            if (enabled != value) {
-                enabled = value;
-                if (!DesignMode) {
-                    if (value) {
-                        cancelHandle.Reset();
-                        thread = new Thread(TimerThread);
-                        thread.Start();
-                    } else {
-                        cancelHandle.Set();
-                        thread.Join();
-                        thread = null;
+            lock (this) {
+                if (enabled != value) {
+                    enabled = value;
+                    if (!DesignMode) {
+                        if (value) {
+                            cancelHandle.Reset();
+                            thread = new Thread(TimerThread);
+                            thread.Start();
+                        } else {
+                            cancelHandle.Set();
+                            thread.Join();
+                            thread = null;
+                        }
                     }
                 }
             }
         }
     }
 
+    [RefreshProperties(RefreshProperties.Repaint)]
     public long IntervalTicks {
         get {
             return intervalTicks;
@@ -76,12 +81,21 @@ public abstract class TimerComponent : Component
         }
     }
 
-    public decimal IntervalMillisecond {
+    [RefreshProperties(RefreshProperties.Repaint)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public decimal Interval {
         get {
-            return IntervalTicks / TimeSpan.TicksPerMillisecond;
+            return (decimal)intervalTicks / TimeSpan.TicksPerMillisecond;
         }
         set {
-            IntervalTicks = (long)(value * TimeSpan.TicksPerMillisecond);
+            if (value < decimal.Zero || value > MaxInterval) {
+                throw new ArgumentException();
+            }
+            value *= TimeSpan.TicksPerMillisecond;
+            if (value > long.MaxValue) {
+                throw new ArgumentException();
+            }
+            intervalTicks = (long)value;
         }
     }
 
